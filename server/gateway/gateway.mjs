@@ -99,10 +99,10 @@ export function makeGeocoder({ fetchImpl = fetch, contact = '' } = {}) {
 }
 
 // Public, credential-less data on a LAN service: allow any origin so browsers/extensions can call it.
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 
 export function createServer({
-  googleKey = '', googleEndpoint = undefined, router = null, monthlyLimit = 2000, cache = new Cache(), geocode = makeGeocoder(),
+  googleKey = '', googleEndpoint = undefined, router = null, accessToken = '', monthlyLimit = 2000, cache = new Cache(), geocode = makeGeocoder(),
   fetchImpl = fetch, tileDir = null, tileTtl = 14 * DAY, contact = '', geoTtl = 90 * DAY, missTtl = DAY, routeTtl = 7 * DAY, noRouteTtl = DAY,
 } = {}) {
   const send = (res, code, obj, extra = {}) => {
@@ -122,7 +122,8 @@ export function createServer({
   const stats = { geocode: 0, route: 0, hits: 0, misses: 0 };
   const inflight = new Map();
   const month = () => new Date().toISOString().slice(0, 7);
-  const used = () => cache.get('u:' + month()) ?? 0; // paid Google calls this month (survives restarts)
+  const used = () => cache.get('u:' + month()) ?? 0; // paid calls this month (survives restarts)
+  let reserved = 0; // paid calls in flight: counted against the cap before they finish, so parallel requests can't overshoot it
   // OSM tile policy: identify the client, cache, keep concurrency low. Tiles are fetched <= 2 at a time.
   const ua = `idealista-commute-gateway/0.1 (self-hosted${contact ? '; ' + contact : ''})`;
   let active = 0; const waiting = [];
@@ -146,6 +147,13 @@ export function createServer({
     try {
       const url = new URL(req.url, 'http://x');
       if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+
+      // Optional shared secret (ACCESS_TOKEN). /health stays open so "Test server" can say what is wrong.
+      if (accessToken && url.pathname !== '/health') {
+        const given = Buffer.from(String(req.headers.authorization || ''));
+        const want = Buffer.from('Bearer ' + accessToken);
+        if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) return send(res, 401, { error: 'access token missing or wrong (set it in the extension options)', fatal: true });
+      }
 
       if (req.method === 'GET' && url.pathname === '/health') {
         return send(res, 200, { ok: true, routing, paidCallsThisMonth: used(), monthlyLimit,
@@ -176,6 +184,8 @@ export function createServer({
       }
 
       if (req.method === 'POST' && url.pathname === '/route') {
+        // Only JSON: a web page cannot send this cross-site without a CORS preflight, so blind form/CSRF posts fail.
+        if (!/^application\/json/i.test(req.headers['content-type'] || '')) return send(res, 415, { error: 'Content-Type must be application/json' });
         let q;
         try { q = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: 'invalid JSON' }); }
         const pt = (p) => (p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180
@@ -188,11 +198,12 @@ export function createServer({
         const hit = cache.get(key);
         if (hit !== undefined) { stats.hits++; return send(res, 200, hit, { 'X-Cache': 'HIT' }); }
         if (!routeFn) return send(res, 503, { error: 'no routing backend configured on the server (set GOOGLE_API_KEY or ROUTER_MODULE)', fatal: true });
-        if (used() >= monthlyLimit) return send(res, 429, { error: `monthly paid-call limit (${monthlyLimit}) reached; raise GOOGLE_MONTHLY_LIMIT`, fatal: true });
+        if (used() + reserved >= monthlyLimit) return send(res, 429, { error: `monthly paid-call limit (${monthlyLimit}) reached; raise GOOGLE_MONTHLY_LIMIT`, fatal: true });
         stats.misses++;
         let p = inflight.get(key);
         if (!p) {
-          p = Promise.resolve(routeFn({ from, to, arriveBy })).finally(() => inflight.delete(key));
+          reserved++;
+          p = Promise.resolve().then(() => routeFn({ from, to, arriveBy })).finally(() => { inflight.delete(key); reserved--; });
           inflight.set(key, p);
         }
         let out;
@@ -224,6 +235,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const server = createServer({
     router,
+    accessToken: process.env.ACCESS_TOKEN || '',
     googleKey: process.env.GOOGLE_API_KEY || '',
     googleEndpoint: process.env.GOOGLE_ENDPOINT || undefined, // tests only: point at a fake Google
     monthlyLimit: Number(process.env.GOOGLE_MONTHLY_LIMIT || 2000),

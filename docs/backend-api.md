@@ -12,6 +12,10 @@ engine, a shared instance run by a friend. All endpoints are plain HTTP + JSON; 
 | `POST /route` | Public-transport route between two points |
 | `GET /tile/{z}/{x}/{y}.png` | Map tile (optional; without it the map is blank, everything else works) |
 
+**Authentication (optional):** when the server sets `ACCESS_TOKEN`, every endpoint except `/health` requires
+`Authorization: Bearer <token>` and answers `401 {"error":…, "fatal":true}` otherwise. `POST /route` requires
+`Content-Type: application/json`.
+
 ## `GET /health`
 ```json
 { "ok": true, "routing": "google", "paidCallsThisMonth": 12, "monthlyLimit": 2000, "cache": { "entries": 340 } }

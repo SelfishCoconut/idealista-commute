@@ -66,7 +66,7 @@ test('route: Google called once per distinct trip (key stays server-side), cache
   const cache = new Cache();
   const srv = createServer({ googleKey: 'SECRET', monthlyLimit: 2, fetchImpl, cache, geocode: async () => ({ found: false }) });
   const base = await listen(srv);
-  const post = (b) => fetch(`${base}/route`, { method: 'POST', body: JSON.stringify(b) });
+  const post = (b) => fetch(`${base}/route`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
   const trip = { from: { lat: 40.39121, lng: -3.69512 }, to: { lat: 40.4352, lng: -3.7192 }, arriveBy: '09:00' };
 
   const a = await post(trip);
@@ -101,18 +101,18 @@ test('route: Google called once per distinct trip (key stays server-side), cache
 
   const nokey = createServer({ fetchImpl, cache: new Cache(), geocode: async () => ({ found: false }) });
   const b2 = await listen(nokey);
-  const nk = await fetch(`${b2}/route`, { method: 'POST', body: JSON.stringify(trip) });
+  const nk = await fetch(`${b2}/route`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(trip) });
   assert.equal(nk.status, 503); assert.match((await nk.json()).error, /GOOGLE_API_KEY/);
   nokey.close();
 
   const bad = createServer({ googleKey: 'k', fetchImpl: async () => json({ error: { message: 'API not enabled' } }, 403), cache: new Cache(), geocode: async () => ({ found: false }) });
   const b3 = await listen(bad);
-  for (let i = 0; i < 2; i++) { const e = await fetch(`${b3}/route`, { method: 'POST', body: JSON.stringify(trip) }); assert.equal(e.status, 502); assert.equal((await e.json()).fatal, true); }
+  for (let i = 0; i < 2; i++) { const e = await fetch(`${b3}/route`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(trip) }); assert.equal(e.status, 502); assert.equal((await e.json()).fatal, true); }
   bad.close();
 
   const none = createServer({ googleKey: 'k', fetchImpl: async () => json({}), cache: new Cache(), geocode: async () => ({ found: false }) });
   const b4 = await listen(none);
-  assert.deepEqual(await (await fetch(`${b4}/route`, { method: 'POST', body: JSON.stringify(trip) })).json(), { found: false });
+  assert.deepEqual(await (await fetch(`${b4}/route`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(trip) })).json(), { found: false });
   none.close();
 });
 
@@ -155,10 +155,29 @@ test('custom router: used instead of Google, cached, reported in /health', async
   const base = `http://127.0.0.1:${srv.address().port}`;
   try {
     const body = JSON.stringify({ from: { lat: 40.39, lng: -3.69 }, to: { lat: 40.43, lng: -3.71 }, arriveBy: '09:00' });
-    const post = () => fetch(`${base}/route`, { method: 'POST', body }).then((r) => r.json());
+    const post = () => fetch(`${base}/route`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).then((r) => r.json());
     const a = await post(), b = await post();
     assert.equal(a.found, true); assert.equal(a.steps[0].mode, 'walk'); assert.deepEqual(a, b);
     assert.equal(calls, 1);
     assert.equal((await (await fetch(`${base}/health`)).json()).routing, 'example');
+  } finally { srv.close(); }
+});
+
+test('security: token required except /health, JSON-only /route, cap holds under parallel requests', async () => {
+  let calls = 0;
+  const router = async () => { calls++; await new Promise((r) => setTimeout(r, 30)); return { found: true, minutes: 1, transfers: 0, steps: [] }; };
+  const srv = createServer({ router, accessToken: 'sekret', monthlyLimit: 2, cache: new Cache(), geocode: async () => ({ found: false }) });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await fetch(`${base}/geocode?q=x`)).status, 401);
+    assert.equal((await fetch(`${base}/geocode?q=x`, { headers: { Authorization: 'Bearer nope' } })).status, 401);
+    const post = (i, ct = 'application/json') => fetch(`${base}/route`, { method: 'POST', headers: { 'Content-Type': ct, Authorization: 'Bearer sekret' },
+      body: JSON.stringify({ from: { lat: 40 + i / 10, lng: -3 }, to: { lat: 41, lng: -3 }, arriveBy: '09:00' }) });
+    assert.equal((await post(0, 'text/plain')).status, 415);
+    const codes = (await Promise.all([1, 2, 3, 4, 5].map((i) => post(i)))).map((r) => r.status).sort();
+    assert.deepEqual(codes, [200, 200, 429, 429, 429]);
+    assert.equal(calls, 2);
   } finally { srv.close(); }
 });

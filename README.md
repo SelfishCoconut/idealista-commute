@@ -106,9 +106,11 @@ The server runs anywhere Node or Docker does: a laptop, a Raspberry Pi, a VPS.
 Friends can use *your* server: they install the extension, type its address in **Server URL**, **Test server**,
 **Save**. Tip: give the server a fixed address (DHCP reservation) so the URL doesn't change.
 
-> **Security:** the server has no authentication. Anyone who can reach it can spend your quota (bounded by the monthly
-> cap) and use your key through it. Keep it on a trusted network or put it behind a reverse proxy with auth.
-> Never expose port 8085 directly to the internet. The API key lives only in `server/.env` and is never sent to
+> **Security:** by default the server has no authentication, so anyone who can reach it can spend your quota (bounded
+> by the monthly cap, which also holds under parallel requests). Set `ACCESS_TOKEN` in `server/.env` to require a
+> shared secret (users enter it under *Access token* in the options), run with `BIND=127.0.0.1` if only this machine
+> needs it, and never expose port 8085 directly to the internet. `/route` only accepts JSON, so other websites
+> can't trigger paid calls through a visitor's browser. The API key lives only in `server/.env` and is never sent to
 > browsers.
 
 ### What is cached

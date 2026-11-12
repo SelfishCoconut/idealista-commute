@@ -30,6 +30,9 @@
   e.g. <code>192.168.1.50</code> or <code>https://commute.example.org</code>)</small>
   <input id="serverUrl" placeholder="http://127.0.0.1:8085" autocomplete="off">
 </label>
+<label>Access token <small>(only if the server sets <code>ACCESS_TOKEN</code>; stored in this browser)</small>
+  <input id="accessToken" type="password" autocomplete="off">
+</label>
 <button id="test" type="button">Test server</button> <span id="testResult"></span>
 
 <label><input id="pinFromMap" type="checkbox" style="width:auto"> Use the listing's pin from idealista's map page when available <small>(exact location, avoids street-name mix-ups; reads each listing's map page slowly, one at a time, and falls back to the address if idealista objects)</small></label>

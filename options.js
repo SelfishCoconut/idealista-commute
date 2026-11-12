@@ -10,6 +10,7 @@ async function load() {
   $('arriveBy').value = settings.arriveBy || '09:00';
   $('citySuffix').value = settings.citySuffix || 'Madrid, España';
   $('serverUrl').value = settings.serverUrl || '';
+  $('accessToken').value = settings.accessToken || '';
   $('debug').checked = !!settings.debug;
   $('pinFromMap').checked = settings.pinFromMap !== false;
   const month = new Date().toISOString().slice(0, 7);
@@ -54,6 +55,7 @@ $('save').addEventListener('click', async () => {
   const next = {
     ...settings,
     serverUrl: serverUrl === DEFAULT_URL ? '' : serverUrl,
+    accessToken: $('accessToken').value.trim(),
     workAddress: $('workAddress').value.trim(),
     arriveBy: $('arriveBy').value || '09:00',
     citySuffix: $('citySuffix').value.trim(),

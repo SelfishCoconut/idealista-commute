@@ -5,6 +5,7 @@ import { buildMapSvg } from './lib/map.js';
 
 const DEFAULTS = {
   serverUrl: '', // empty = http://127.0.0.1:8085 (this machine); or any server speaking docs/backend-api.md
+  accessToken: '', // optional shared secret, if the server sets ACCESS_TOKEN
   workAddress: '',
   arriveBy: '09:00',
   citySuffix: 'Madrid, España',
@@ -73,7 +74,7 @@ async function commute(title, pin) {
   const route = await cached(key, () =>
     th('route', 100, true).run(async () => {
       await bumpUsage();
-      const r = await withRetry(() => backend.route({ from: home, to: work, arriveBy: s.arriveBy, serverUrl: s.serverUrl }));
+      const r = await withRetry(() => backend.route({ from: home, to: work, arriveBy: s.arriveBy, serverUrl: s.serverUrl, accessToken: s.accessToken }));
       if (s.debug) console.debug('[idealista-commute] route', addr, r);
       return r;
     }), { cacheNull: false }); // "no route" may be transient or a settings issue; retry next time
@@ -87,14 +88,14 @@ async function commute(title, pin) {
 // as data: URLs, so the idealista page never contacts a tile server and its CSP is not an obstacle.
 async function mapFor(route) {
   const s = await getSettings();
-  return buildMapSvg(route, (z, x, y) => backend.tileDataUrl(s.serverUrl, z, x, y));
+  return buildMapSvg(route, (z, x, y) => backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
 }
 
 browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'openOptions') return browser.runtime.openOptionsPage();
-  if (msg?.type === 'tile') return getSettings().then((st) => backend.tileDataUrl(st.serverUrl, msg.z, msg.x, msg.y)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
+  if (msg?.type === 'tile') return getSettings().then((st) => backend.tileDataUrl(st.serverUrl, msg.z, msg.x, msg.y, st.accessToken)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'map') return mapFor(msg.route).then((svg) => ({ svg })).catch((e) => ({ error: e.message }));
   if (msg?.type !== 'commute') return;
   return commute(msg.title, msg.pin).catch((e) => ({
