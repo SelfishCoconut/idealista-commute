@@ -1,0 +1,6 @@
+html, body, #map { margin: 0; height: 100%; width: 100%; font-family: system-ui, sans-serif; }
+.leaflet-container { background: #e8e6e1; }
+.icm-pin { display: flex; align-items: center; gap: 4px; transform: translate(-9px, -9px); white-space: nowrap; }
+.icm-dot { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,.5); box-sizing: border-box; }
+.icm-lbl { font: 700 12px/1 system-ui, sans-serif; color: #111; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; }
+.icm-ridepin { font: 700 11px/1 system-ui, sans-serif; padding: 3px 6px; border-radius: 10px; border: 2px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,.5); transform: translate(-50%, -50%); white-space: nowrap; }

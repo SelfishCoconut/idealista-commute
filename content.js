@@ -1,0 +1,404 @@
+// Runs on idealista pages. It only reads the listing titles already rendered in YOUR browser
+// and asks the background script for the commute; it never fetches idealista itself.
+(() => {
+  // ---- Selectors live here so a site change is a one-line fix. ----
+  // idealista result cards: <article class="item ..."> with <a class="item-link" title="Piso en calle X, Barrio, Madrid">
+  const CARD = 'article.item, article[data-element-id]';
+  const LINK = 'a.item-link, a[href*="/inmueble/"]';
+  const HOST = '.item-info-container, .item-detail-container';
+
+  const seen = new WeakSet();
+  const jobs = new WeakMap(); // card -> promise of its commute result
+  let stopped = false;
+
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  // Line icons (one set, 16px, 1.5 stroke, colour = surrounding text), built with the DOM so nothing is parsed as HTML.
+  const ICONS = { train: ['M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z', 'M4 11h16', 'M8 21l2-3M16 21l-2-3'], chevron: ['M6 9l6 6 6-6'] };
+  function icon(name, cls) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('class', 'icm-ico' + (cls ? ' ' + cls : ''));
+    svg.setAttribute('aria-hidden', 'true');
+    for (const d of ICONS[name]) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); svg.append(p); }
+    return svg;
+  }
+  const headRow = (...kids) => { const h = el('div', 'icm-head'); h.append(icon('train'), ...kids); return h; };
+  // Never let a click inside our UI reach idealista's own card/link handlers.
+  const isolate = (n) => { n.addEventListener('click', (e) => e.stopPropagation()); return n; };
+
+  function title(card) {
+    const a = card.querySelector(LINK);
+    return (a && (a.getAttribute('title') || a.textContent)) || '';
+  }
+
+  function badge(card) {
+    let b = card.querySelector('.icm-badge');
+    if (!b) {
+      b = el('div', 'icm-badge icm-loading');
+      b.append(headRow(el('span', 'icm-txt', 'Calculating commute…')));;
+      const host = card.querySelector(HOST) || card;
+      // Cards with a fixed height would let the expanded panel run over the next listing; let them grow instead.
+      host.classList.add('icm-host'); card.classList.add('icm-host');
+      host.appendChild(b);
+    }
+    return b;
+  }
+
+  // Line colours, used only to draw the route on the map.
+  const METRO = { 1: ['#2dbef0', '#000'], 2: ['#ff0000', '#fff'], 3: ['#ffdf00', '#000'], 4: ['#a65a21', '#fff'], 5: ['#7db82f', '#000'],
+    6: ['#9e9e9e', '#000'], 7: ['#ff8200', '#000'], 8: ['#ff85b9', '#000'], 9: ['#b72e9a', '#fff'], 10: ['#00529b', '#fff'],
+    11: ['#007f3b', '#fff'], 12: ['#a49800', '#fff'], R: ['#fff', '#000'] };
+  const MODE = { subway: ['#1d4ed8', '#fff', 'Ⓜ'], bus: ['#c2410c', '#fff', '🚌'], rail: ['#15803d', '#fff', '🚆'], tram: ['#a21caf', '#fff', '🚊'] };
+
+  const colorOf = (s) => ((s.mode === 'subway' && METRO[s.line]) ? METRO[s.line] : (MODE[s.mode] || ['#444', '#fff']));
+
+  const gmapsUrl = (r) => `https://www.google.com/maps/dir/?api=1&origin=${r.home.lat},${r.home.lng}&destination=${r.work.lat},${r.work.lng}&travelmode=transit`;
+
+  // Interactive map (Leaflet in an extension iframe) right under the badge row; if the iframe can't start
+  // (blocked by the page, extension reloaded...) a static SVG map is used instead.
+  function mapBlock(r) {
+    const wrap = el('div', 'icm-maps');
+    const box = el('div', 'icm-mapbox');
+    const open = el('a', 'icm-open', 'Open in Google Maps');
+    open.href = gmapsUrl(r);
+    open.target = '_blank';
+    open.rel = 'noopener noreferrer';
+    wrap.append(box, open);
+
+    const route = { home: r.home, work: r.work,
+      steps: r.steps.map((s) => { const [bg, fg] = colorOf(s); return { ...s, bg, fg }; }) };
+    // The route travels through extension storage (cross-window postMessage between a content script and an
+    // extension iframe proved unreliable); the map page deletes it once drawn and signals back the same way.
+    const id = Math.random().toString(36).slice(2);
+    let drawn = false;
+    const onChange = (ch) => {
+      if (!ch['d:' + id]) return;
+      drawn = true;
+      browser.storage.onChanged.removeListener(onChange);
+      browser.storage.local.remove(['m:' + id, 'd:' + id]);
+    };
+    browser.storage.onChanged.addListener(onChange);
+    (async () => {
+      await browser.storage.local.set({ ['m:' + id]: route });
+      const frame = el('iframe', 'icm-iframe');
+      frame.src = browser.runtime.getURL('map.html') + '#' + id;
+      frame.title = 'Route map';
+      box.append(frame);
+    })();
+    setTimeout(async () => { // fallback if the interactive map never reports back
+      if (drawn) return;
+      browser.storage.onChanged.removeListener(onChange);
+      browser.storage.local.remove(['m:' + id, 'd:' + id]);
+      try {
+        const res = await ask({ type: 'map', route: { steps: r.steps, home: r.home, work: r.work } });
+        if (!res?.svg) throw new Error(res?.error || 'no map');
+        const doc = new DOMParser().parseFromString(res.svg, 'image/svg+xml');
+        box.replaceChildren(document.importNode(doc.documentElement, true));
+      } catch (err) {
+        box.replaceChildren(el('div', 'icm-ride-meta', 'Map unavailable: ' + err.message));
+      }
+    }, 8000);
+    return wrap;
+  }
+
+  function render(card, b, r) {
+    b.className = 'icm-badge';
+    b.replaceChildren();
+    delete card.dataset.icmMin;
+    if (r.status !== 'ok') {
+      b.classList.add('icm-muted');
+      const msg = r.status === 'noroute' ? 'No transit route found'
+        : r.status === 'noaddr' ? `Location not found${r.address ? `: ${r.address}` : ''}`
+        : r.status === 'setup' ? r.message.replace(/\.$/, '')
+        : (r.message || 'Error').replace(/\.$/, '');
+      const head = headRow(el('span', 'icm-txt', msg));
+      if (r.status === 'setup' || r.fatal) {
+        head.append(el('span', 'icm-link', 'Open options'));
+        head.classList.add('icm-click');
+        head.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); browser.runtime.sendMessage({ type: 'openOptions' }); });
+      }
+      b.append(head);
+      return;
+    }
+    card.dataset.icmMin = String(r.minutes);
+    const head = headRow(el('strong', 'icm-min', `${r.minutes} min`),
+      el('span', 'icm-txt', r.transfers === 0 ? 'Direct' : `${r.transfers} change${r.transfers === 1 ? '' : 's'}`),
+      icon('chevron', 'icm-chev'));
+    head.classList.add('icm-click');
+    head.setAttribute('role', 'button');
+    head.setAttribute('aria-expanded', 'false');
+    head.tabIndex = 0;
+    const panel = el('div', 'icm-panel');
+    panel.hidden = true;
+    const list = el('ol', 'icm-steps');
+    for (const st of r.steps) list.append(el('li', null, st.text));
+    const where = r.source === 'pin' ? 'listing pin on idealista' : r.source === 'pin-approx' ? 'approximate area on idealista' : `≈ from "${r.address}"`;
+    list.append(el('div', 'icm-note', `${where} · ${r.provider}`));
+    panel.append(list);
+    let opened = false;
+    head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); head.click(); } });
+    let refined = false;
+    head.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!opened && !refined && r.source === 'address') {
+        refined = true;
+        head.classList.add('icm-busy');
+        const replaced = await refine(card, b).catch(() => false);
+        head.classList.remove('icm-busy');
+        if (replaced) return; // the refined row re-opened itself
+      }
+      panel.hidden = !panel.hidden;
+      head.setAttribute('aria-expanded', String(!panel.hidden));
+      head.classList.toggle('icm-open-head', !panel.hidden);
+      if (!panel.hidden && !opened && r.home && r.work) { // the map is created on first expand, right under the row
+        opened = true;
+        panel.prepend(mapBlock(r));
+      }
+    });
+    b.append(head, isolate(panel));
+  }
+
+  // The background script may still be starting when the first card asks (fresh install / browser start):
+  // Firefox then answers "Receiving end does not exist". Retry briefly instead of showing an error.
+  async function ask(msg) {
+    for (let i = 0; ; i++) {
+      try { return await browser.runtime.sendMessage(msg); }
+      catch (e) {
+        if (i >= 6 || !/Receiving end does not exist|Could not establish connection/i.test(e.message)) throw e;
+        await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+      }
+    }
+  }
+
+  // ---- exact / approximate location from idealista's own map page (/inmueble/<id>/mapa) ----------------
+  // Same-origin fetch from the page (your cookies, like opening the map yourself), slowly and one at a time;
+  // results are kept for 30 days. If idealista shows a bot check we stop for 30 minutes and fall back to the
+  // address geocoder, so a listing never fails just because the pin could not be read.
+  let idl = null, pinPausedUntil = 0, pinChain = Promise.resolve();
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let sorting = false; // while sorting many listings we skip the slow per-listing /mapa lookups (refined when you expand one)
+  async function pinFor(card, force = false) {
+    try {
+      const { settings = {} } = await browser.storage.local.get('settings');
+      if (settings.pinFromMap === false) return null;
+      idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
+      const id = idl.listingId(card.querySelector(LINK)?.getAttribute('href'));
+      if (!id) return null;
+      const key = 'p:' + id;
+      const hit = (await browser.storage.local.get(key))[key];
+      if (hit && Date.now() - hit.ts < (hit.v ? 30 : 3) * 86400e3) return hit.v;
+      if (sorting && !force) return null;
+      if (Date.now() < pinPausedUntil) return null;
+      const v = await (pinChain = pinChain.then(async () => {
+        if (Date.now() < pinPausedUntil) return undefined;
+        await sleep(1200 + Math.random() * 1000);
+        const res = await fetch(`/inmueble/${id}/mapa`, { credentials: 'same-origin' });
+        const html = await res.text();
+        if (idl.looksBlocked(res.status, html)) { pinPausedUntil = Date.now() + 30 * 60e3; return undefined; }
+        return res.ok ? idl.parseMapCoords(html) : null;
+      }, () => undefined));
+      if (v === undefined) return null; // blocked or paused: not cached
+      await browser.storage.local.set({ [key]: { ts: Date.now(), v } });
+      return v;
+    } catch { return null; }
+  }
+
+  const sigOf = (settings) => [settings.workAddress, settings.arriveBy, settings.serverUrl, settings.pinFromMap].join('|');
+  const idOf = (card) => /\/inmueble\/(\d+)/.exec(card.querySelector(LINK)?.getAttribute('href') || '')?.[1];
+  async function saveResult(card, r) {
+    const id = idOf(card);
+    if (!id || r?.status !== 'ok') return;
+    const { settings = {} } = await browser.storage.local.get('settings');
+    await browser.storage.local.set({ ['l:' + id]: { ts: Date.now(), sig: sigOf(settings), r } });
+  }
+  // A result computed from the address (no pin yet) is refined with idealista's own pin the first time you open it.
+  async function refine(card, b) {
+    const pin = await pinFor(card, true);
+    if (!pin) return false;
+    const r2 = await ask({ type: 'commute', title: title(card), pin });
+    if (r2?.status !== 'ok') return false;
+    await saveResult(card, r2);
+    render(card, b, r2);
+    b.querySelector('.icm-head')?.click();
+    return true;
+  }
+
+  function handle(card) {
+    if (jobs.has(card)) return jobs.get(card);
+    const t = title(card);
+    if (!t || stopped) return Promise.resolve(); // card not fully rendered yet; a later mutation will retry
+    seen.add(card);
+    const b = badge(card);
+    const job = (async () => {
+      try {
+        // Listings computed earlier (same work address/settings) come straight from the stored result:
+        // no pin fetch, no server call, no API use. They are also skipped when sorting.
+        const { settings = {} } = await browser.storage.local.get('settings');
+        const sig = sigOf(settings);
+        const id = idOf(card);
+        const lkey = id && 'l:' + id;
+        if (lkey) {
+          const hit = (await browser.storage.local.get(lkey))[lkey];
+          if (hit && hit.sig === sig && Date.now() - hit.ts < 12 * 3600e3) { render(card, b, hit.r); return; }
+        }
+        const pin = await pinFor(card);
+        const r = await ask({ type: 'commute', title: t, pin });
+        render(card, b, r || { status: 'error', message: 'no response' });
+        await saveResult(card, r);
+        if (r?.fatal || r?.status === 'setup') stopped = true; // don't hammer after a bad key / missing setup
+      } catch (e) {
+        render(card, b, { status: 'error', message: e.message });
+      }
+    })();
+    jobs.set(card, job);
+    return job;
+  }
+
+  // ---- sort by commute time ----------------------------------------------------------------------
+  // Reorders the cards of the CURRENT page (idealista paginates server-side, so other pages are not included).
+  let sortOn = false, original = null, resortTimer = null;
+  const cards = () => [...document.querySelectorAll(CARD)];
+  const minutes = (c) => (c.dataset.icmMin ? Number(c.dataset.icmMin) : Infinity);
+
+  function placeInOrder(list) { // put `list` into the DOM slots the cards currently occupy, leaving ads etc. in place
+    const slots = cards().map((c) => { const m = document.createComment(''); c.before(m); return m; });
+    list.forEach((c, i) => slots[i].replaceWith(c));
+  }
+  function applySort() {
+    const cs = cards();
+    if (!original) original = cs.slice();
+    const sorted = cs.slice().sort((a, b) => minutes(a) - minutes(b));
+    // Moving a card in the DOM reloads any iframe (the map) inside it, so only touch the page if the order changes.
+    if (sorted.every((c, i) => c === cs[i])) return;
+    placeInOrder(sorted);
+  }
+  async function setSort(on, setStatus = () => {}) {
+    sortOn = on;
+    if (!on) {
+      if (original) placeInOrder(original.filter((c) => c.isConnected).concat(cards().filter((c) => !original.includes(c))));
+      original = null;
+      setStatus('');
+      return;
+    }
+    // Only listings without a result yet need work; those already computed (or cached) are just sorted.
+    const todo = cards().filter((c) => !c.dataset.icmMin && !jobs.has(c));
+    let done = 0;
+    sorting = true;
+    if (todo.length) setStatus(`Calculating 0/${todo.length}…`);
+    await Promise.all(todo.map((c) => handle(c).then(() => setStatus(`Calculating ${++done}/${todo.length}…`))));
+    await Promise.all(cards().map((c) => jobs.get(c)).filter(Boolean)); // any still in flight from scrolling
+    sorting = false;
+    if (sortOn) { applySort(); setStatus('Sorted by commute time'); }
+  }
+  // New cards arriving while sorting (infinite scroll / filters) get computed and sorted in.
+  function scheduleResort() {
+    if (!sortOn) return;
+    clearTimeout(resortTimer);
+    resortTimer = setTimeout(async () => { await Promise.all(cards().map(handle)); if (sortOn) applySort(); }, 800);
+  }
+
+  // Preferred: add an entry to idealista's own "Ordenar" list. Fallback: our own small bar above the results.
+  let barStatus = () => {};
+  const ownText = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('').trim().toLowerCase();
+  const SORTWORD = /^(relevancia|recientes|más recientes|baratos|más baratos|precio)/i;
+  function installNativeSort() {
+    const done = document.querySelector('[data-icm-sort]');
+    if (done) { if (done.isConnected) { document.querySelector('.icm-sortbar')?.remove(); return true; } }
+    // 1) a real <select> with a Relevancia option
+    for (const sel of document.querySelectorAll('select')) {
+      const opts = [...sel.options];
+      if (!opts.some((o) => /relevancia/i.test(o.textContent))) continue;
+      const o = new Option('Tiempo al trabajo', 'icm-commute');
+      o.setAttribute('data-icm-sort', '1');
+      sel.append(o);
+      sel.addEventListener('change', (e) => { if (sel.value === 'icm-commute') { e.stopImmediatePropagation(); setSort(true); } else if (sortOn) setSort(false); }, true);
+      document.querySelector('.icm-sortbar')?.remove();
+      return true;
+    }
+    // 2) a list/menu of options: find the "Relevancia" entry, then the container that also holds Recientes/Baratos
+    const first = [...document.querySelectorAll('li, a, button, label, span, div, p')].find((n) => ownText(n) === 'relevancia');
+    if (!first) return false;
+    let item = first;
+    while (item.parentElement && ![...item.parentElement.children].some((c) => c !== item && SORTWORD.test(c.textContent.trim()))) item = item.parentElement;
+    const list = item.parentElement;
+    if (!list || list === document.body) return false;
+    const model = [...list.children].reverse().find((c) => SORTWORD.test(c.textContent.trim()));
+    if (!model) return false;
+    const clone = model.cloneNode(true);
+    clone.setAttribute('data-icm-sort', '1');
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[href]').forEach((a) => { a.removeAttribute('href'); a.style.cursor = 'pointer'; });
+    clone.querySelectorAll('input').forEach((i) => { i.checked = false; i.removeAttribute('id'); });
+    clone.querySelectorAll('[aria-selected],[aria-checked],[aria-current]').forEach((n) => { n.setAttribute('aria-selected', 'false'); n.setAttribute('aria-checked', 'false'); n.removeAttribute('aria-current'); });
+    clone.className = clone.className.replace(/\b\S*(active|selected|current|checked)\S*\b/gi, '').trim() || clone.className;
+    const leaf = [...clone.querySelectorAll('*')].reverse().find((n) => ownText(n)) || clone;
+    [...leaf.childNodes].filter((c) => c.nodeType === 3).forEach((c) => c.remove());
+    leaf.prepend('Tiempo al trabajo');
+    clone.style.cursor = 'pointer';
+    clone.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setSort(true, barStatus); }, true);
+    list.append(clone);
+    document.querySelector('.icm-sortbar')?.remove();
+    return true;
+  }
+  function installBar() {
+    if (document.querySelector('.icm-sortbar')) return;
+    const first = cards()[0];
+    if (!first?.parentElement) return;
+    const bar = el('div', 'icm-sortbar');
+    const btn = el('button', 'icm-sortbtn', 'Sort by commute time');
+    btn.type = 'button';
+    const status = el('span', 'icm-sortstatus');
+    barStatus = (t) => { status.textContent = t; };
+    btn.addEventListener('click', () => { btn.classList.toggle('icm-on', !sortOn); btn.textContent = sortOn ? 'Sort by commute time' : 'Sorted by commute time (undo)'; setSort(!sortOn, barStatus); });
+    bar.append(btn, status);
+    first.parentElement.insertBefore(bar, first);
+  }
+
+  // Only compute for cards near the viewport so scrolling a long list doesn't burn API quota.
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { io.unobserve(e.target); handle(e.target); }
+  }, { rootMargin: '300px' });
+
+  // ---- a single listing page (/inmueble/<id>/): the same row, already expanded, under the title ----
+  let detailDone = false;
+  function initDetail() {
+    if (detailDone) return;
+    const m = /^\/inmueble\/(\d+)\/?$/.exec(location.pathname);
+    const h1 = document.querySelector('h1');
+    if (!m || !h1) return;
+    detailDone = true;
+    const main = document.querySelector('.main-info__title-main')?.textContent.trim() || h1.textContent.trim();
+    const minor = document.querySelector('.main-info__title-minor')?.textContent.trim();
+    // Same shape as a result-list title, so it goes through the same address parsing and pin lookup.
+    const holder = el('div', 'icm-detail');
+    const a = el('a', 'item-link');
+    a.href = `/inmueble/${m[1]}/`;
+    a.title = [main, minor].filter(Boolean).join(', ');
+    a.hidden = true;
+    holder.append(a);
+    (h1.closest('.main-info__title') || h1).after(holder);
+    handle(holder).then(() => holder.querySelector('.icm-click.icm-head')?.click());
+  }
+
+  // Cards are picked up immediately; the (heavier) menu/bar installation is throttled and can never break the badges.
+  let installTimer = null;
+  function install() {
+    installTimer = null;
+    try { if (!installNativeSort()) installBar(); } catch (e) { console.error('[idealista-commute] sort menu', e); try { installBar(); } catch {} }
+    try { initDetail(); } catch (e) { console.error('[idealista-commute] detail page', e); }
+    try { scheduleResort(); } catch (e) { console.error('[idealista-commute] resort', e); }
+  }
+  function scan() {
+    document.querySelectorAll(CARD).forEach((c) => { if (!seen.has(c)) io.observe(c); });
+    if (!installTimer) installTimer = setTimeout(install, 500);
+  }
+  scan();
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+})();

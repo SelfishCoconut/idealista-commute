@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { listingId, parseMapCoords, looksBlocked } from '../lib/idealista.js';
+
+test('listingId reads the numeric id from listing links', () => {
+  assert.equal(listingId('/inmueble/112919873/'), '112919873');
+  assert.equal(listingId('https://www.idealista.com/inmueble/112919873/mapa'), '112919873');
+  assert.equal(listingId('/venta-viviendas/madrid/'), null);
+  assert.equal(listingId(undefined), null);
+});
+
+// The real /mapa markup could not be inspected (idealista blocks non-browser clients), so these use the common
+// shapes the parser is meant to tolerate. Add a saved real page as a fixture when one is available.
+test('parseMapCoords accepts the usual coordinate shapes and rejects non-Spanish numbers', () => {
+  const at = (html) => parseMapCoords(html);
+  assert.deepEqual(at('var ubication = {"latitude":"40.3912","longitude":"-3.6951"};'), { lat: 40.3912, lng: -3.6951, approx: false });
+  assert.deepEqual(at('{"longitude": -3.6951, "latitude": 40.3912}'), { lat: 40.3912, lng: -3.6951, approx: false });
+  assert.deepEqual(at("latitude: '40.4168', longitude: '-3.7038'"), { lat: 40.4168, lng: -3.7038, approx: false });
+  assert.deepEqual(at('{"lat":40.4168,"lng":-3.7038}'), { lat: 40.4168, lng: -3.7038, approx: false });
+  assert.deepEqual(at('<div data-lat="40.4168" data-lng="-3.7038"></div>'), { lat: 40.4168, lng: -3.7038, approx: false });
+  assert.deepEqual(at('<img src="https://maps.googleapis.com/maps/api/staticmap?center=40.4168,-3.7038&zoom=15">'), { lat: 40.4168, lng: -3.7038, approx: false });
+  assert.equal(at('{"latitude":"48.8566","longitude":"2.3522"}'), null); // Paris: not Spain
+  assert.equal(at('{"latitude":"-3.7038","longitude":"40.4168"}'), null); // swapped
+  assert.equal(at('<html>nothing here</html>'), null);
+  assert.equal(at(''), null);
+  assert.equal(at('{"latitude":"40.4168","longitude":"-3.7038"} zona aproximada').approx, true); // approximate area wording
+});
+
+test('looksBlocked detects bot checks', () => {
+  assert.equal(looksBlocked(403, ''), true);
+  assert.equal(looksBlocked(200, '<script src="https://geo.captcha-delivery.com/x.js">'), true);
+  assert.equal(looksBlocked(200, '<html>mapa</html>'), false);
+});

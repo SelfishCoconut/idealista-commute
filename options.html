@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Idealista Commute options</title>
+<style>
+  body { font: 15px/1.4 system-ui, sans-serif; max-width: 560px; margin: 24px auto; padding: 0 16px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, select { width: 100%; padding: 6px; box-sizing: border-box; font: inherit; }
+  small { color: #667; font-weight: 400; }
+  button { margin-top: 18px; padding: 8px 16px; font: inherit; }
+  #status, #usage { margin-top: 12px; color: #276; }
+  fieldset { margin-top: 18px; }
+</style>
+</head>
+<body>
+<h1>Idealista Commute</h1>
+
+<label>Work address <small>(street, city)</small>
+  <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid">
+</label>
+<label>Arrive by <small>(next weekday at this time)</small>
+  <input id="arriveBy" type="time" value="09:00">
+</label>
+<label>City suffix <small>(added to listing locations that don't name the city)</small>
+  <input id="citySuffix" value="Madrid, España">
+</label>
+
+<label>Server URL <small>(your backend: leave empty for this machine, or type a self-hosted / shared server's address,
+  e.g. <code>192.168.1.50</code> or <code>https://commute.example.org</code>)</small>
+  <input id="serverUrl" placeholder="http://127.0.0.1:8085" autocomplete="off">
+</label>
+<button id="test" type="button">Test server</button> <span id="testResult"></span>
+
+<label><input id="pinFromMap" type="checkbox" style="width:auto"> Use the listing's pin from idealista's map page when available <small>(exact location, avoids street-name mix-ups; reads each listing's map page slowly, one at a time, and falls back to the address if idealista objects)</small></label>
+<label><input id="debug" type="checkbox" style="width:auto"> Log raw route responses to the console (debugging)</label>
+
+<button id="save">Save</button>
+<button id="clear">Clear cache</button>
+<div id="status"></div>
+<div id="usage"></div>
+<script type="module" src="options.js"></script>
+</body>
+</html>

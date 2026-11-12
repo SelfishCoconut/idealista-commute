@@ -1,0 +1,23 @@
+# The backend server: caching proxy for routing (Google by default; the API key stays here), geocoding and map tiles.
+# Put your key in server/.env (see .env.example); compose reads it automatically.
+services:
+  gateway:
+    image: node:22-alpine
+    command: ["node", "/app/gateway.mjs"]
+    user: "1000:1000"
+    read_only: true
+    environment:
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      GOOGLE_MONTHLY_LIMIT: "${GOOGLE_MONTHLY_LIMIT:-2000}"   # hard cap on paid calls per month (cache hits are free)
+      CACHE_FILE: /cache/cache.jsonl
+      TILE_DIR: /cache/tiles
+      ROUTER_MODULE: "${ROUTER_MODULE:-}"       # optional: path (inside the container) of a custom router, e.g. /routers/my-router.mjs
+      GATEWAY_CONTACT: "${GATEWAY_CONTACT:-}"   # optional contact for Nominatim/OSM usage policies; leave empty to omit
+    volumes:
+      - ./gateway:/app:ro
+      - ./routers:/routers:ro
+      - ./cache:/cache
+    ports:
+      # 0.0.0.0 = reachable from your LAN. Use BIND=127.0.0.1 to keep it local to this machine.
+      - "${BIND:-0.0.0.0}:8085:8085"
+    restart: unless-stopped   # comes back after reboots (docker.service must be enabled)
