@@ -1,114 +1,114 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Idealista Commute options</title>
+<title>Opciones</title>
 <link rel="stylesheet" href="options.css">
 </head>
 <body>
 <main>
-  <h1>Idealista Commute</h1>
-  <p class="sub">Commute time and a fake-photo check on every idealista listing</p>
+  <h1 data-i18n="actionTitle"></h1>
+  <p class="sub" data-i18n="optSub"></p>
 
   <form id="gate" hidden>
-    <h2>Locked</h2>
-    <p class="hint">Your API keys are encrypted. Enter the passphrase to open the settings; it stays unlocked until the browser closes.</p>
-    <label class="field"><span>Passphrase</span><input id="gatePass" type="password" autocomplete="off"></label>
-    <div class="test"><button type="submit" class="primary">Unlock</button><span class="msg" id="gateErr" role="alert"></span></div>
+    <h2 data-i18n="optLockedTitle"></h2>
+    <p class="hint" data-i18n="optLockedHint"></p>
+    <label class="field"><span data-i18n="passphrase"></span><input id="gatePass" type="password" autocomplete="off"></label>
+    <div class="test"><button type="submit" class="primary" data-i18n="unlock"></button><span class="msg" id="gateErr" role="alert"></span></div>
   </form>
 
   <div id="app">
-  <div class="preview" aria-label="Preview">
+  <div class="preview" data-i18n-aria-label="previewLabel">
     <div class="row">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M4 11h16"/><path d="M8 21l2-3M16 21l-2-3"/></svg>
       <strong>28 min</strong><span class="meta">1 change</span>
       <span class="ai"><strong>12%</strong> <span class="meta">AI</span></span>
     </div>
-    <p class="cap" id="previewCap">Example of the row added to each listing</p>
+    <p class="cap" id="previewCap" data-i18n="previewCap"></p>
   </div>
 
   <section>
-    <h2>Commute</h2>
-    <label class="field"><span>Work address</span>
+    <h2 data-i18n="secCommute"></h2>
+    <label class="field"><span data-i18n="workAddress"></span>
       <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid" autocomplete="off">
     </label>
     <div class="grid">
-      <label class="field"><span>Arrive by</span>
+      <label class="field"><span data-i18n="arriveBy"></span>
         <input id="arriveBy" type="time" value="09:00">
-        <p class="hint">Planned for the next weekday</p>
+        <p class="hint" data-i18n="arriveByHint"></p>
       </label>
-      <label class="field"><span>City</span>
+      <label class="field"><span data-i18n="city"></span>
         <input id="citySuffix" placeholder="Madrid, España" autocomplete="off">
-        <p class="hint">Added to listings that don't name one</p>
+        <p class="hint" data-i18n="cityHint"></p>
       </label>
     </div>
     <label class="switch"><input id="pinFromMap" type="checkbox">
-      <span><b>Use idealista's exact pin</b><p class="hint">Reads each listing's map page, slowly. Falls back to the address if idealista objects</p></span>
+      <span><b data-i18n="pinTitle"></b><p class="hint" data-i18n="pinHint"></p></span>
     </label>
   </section>
 
   <section>
-    <h2>Where it runs</h2>
-    <div class="seg" role="radiogroup" aria-label="Commute backend">
-      <label class="opt"><input type="radio" name="backend" value="server" checked>My server</label>
-      <label class="opt"><input type="radio" name="backend" value="browser">This browser</label>
+    <h2 data-i18n="secWhere"></h2>
+    <div class="seg" role="radiogroup" data-i18n-aria-label="backendAria">
+      <label class="opt"><input type="radio" name="backend" value="server" checked><span data-i18n="optServer"></span></label>
+      <label class="opt"><input type="radio" name="backend" value="browser"><span data-i18n="optBrowser"></span></label>
     </div>
     <div class="panel" id="serverPanel">
-    <p class="hint" id="serverWhy" hidden style="margin:16px 0 0">Your server is only used for the photo check</p>
-    <label class="field"><span>Server URL</span>
+    <p class="hint" id="serverWhy" data-i18n="serverWhy" hidden style="margin:16px 0 0"></p>
+    <label class="field"><span data-i18n="serverUrl"></span>
       <input id="serverUrl" class="mono" placeholder="http://127.0.0.1:8085" autocomplete="off" spellcheck="false">
-      <p class="hint">Leave empty for this machine, or enter an address such as <code>192.168.1.50</code> or <code>https://commute.example.org</code></p>
+      <p class="hint" data-i18n="serverUrlHint"></p>
     </label>
-    <label class="field"><span>Access token</span>
+    <label class="field"><span data-i18n="accessToken"></span>
       <input id="accessToken" class="mono" type="password" autocomplete="off">
-      <p class="hint">Only if the server sets <code>ACCESS_TOKEN</code></p>
+      <p class="hint" data-i18n="accessTokenHint"></p>
     </label>
-    <div class="test"><button id="test" type="button" class="btn">Test server</button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
+    <div class="test"><button id="test" type="button" class="btn" data-i18n="testServer"></button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
     </div>
     <div class="panel" id="browserPanel" hidden>
       <div class="grid">
-        <label class="field"><span>Google Routes API key</span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
-        <label class="field"><span>Routes per month</span><input id="googleLimit" type="number" min="1" value="2000"></label>
+        <label class="field"><span data-i18n="googleKey"></span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
+        <label class="field"><span data-i18n="routesMonth"></span><input id="googleLimit" type="number" min="1" value="2000"></label>
       </div>
-      <label class="field"><span>Map tiles URL <small>(optional)</small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
-        <p class="hint">Leave empty for OpenStreetMap, or use another provider's template with <code>{z}</code> <code>{x}</code> <code>{y}</code>. The attribution shown stays OpenStreetMap's: add your provider's if it requires one</p></label>
-      <div class="note">No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored encrypted with your passphrase (see Key passphrase), answers are cached here only, and the monthly limit is counted per browser.</div>
+      <label class="field"><span><span data-i18n="tileUrl"></span> <small data-i18n="optional"></small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
+        <p class="hint" data-i18n="tileUrlHint"></p></label>
+      <div class="note" data-i18n="browserNote"></div>
     </div>
   </section>
 
   <section>
-    <h2>Fake-photo check</h2>
-    <div class="seg" role="radiogroup" aria-label="Photo check source">
-      <label class="opt"><input type="radio" name="aiSource" value="server" checked>My server</label>
-      <label class="opt"><input type="radio" name="aiSource" value="browser">My Sightengine key</label>
+    <h2 data-i18n="secPhoto"></h2>
+    <div class="seg" role="radiogroup" data-i18n-aria-label="photoAria">
+      <label class="opt"><input type="radio" name="aiSource" value="server" checked><span data-i18n="optServer"></span></label>
+      <label class="opt"><input type="radio" name="aiSource" value="browser"><span data-i18n="optMyKey"></span></label>
     </div>
-    <p class="hint" id="aiServerHint" style="margin-top:12px">The server holds the credentials (<code>SIGHTENGINE_USER</code>, <code>SIGHTENGINE_SECRET</code>) and shares one cache and monthly limit.</p>
+    <p class="hint" id="aiServerHint" data-i18n="aiServerHint" style="margin-top:12px"></p>
     <div class="panel" id="aiKeyPanel" hidden>
       <div class="grid">
-        <label class="field"><span>API user</span><input id="sightengineUser" class="mono" autocomplete="off" spellcheck="false"></label>
-        <label class="field"><span>API secret</span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
+        <label class="field"><span data-i18n="apiUser"></span><input id="sightengineUser" class="mono" autocomplete="off" spellcheck="false"></label>
+        <label class="field"><span data-i18n="apiSecret"></span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
       </div>
-      <label class="field"><span>Photos per month</span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
-      <div class="note">The browser calls <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> directly, no server needed. The credentials are stored encrypted with your passphrase (see Key passphrase).</div>
+      <label class="field"><span data-i18n="photosMonth"></span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
+      <div class="note" data-i18n="sightNote"><a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a></div>
     </div>
   </section>
 
   <section id="vaultSection">
-    <h2>Key passphrase</h2>
-    <label class="field"><span>Passphrase</span><input id="passphrase" type="password" autocomplete="off"></label>
+    <h2 data-i18n="secVault"></h2>
+    <label class="field"><span data-i18n="passphrase"></span><input id="passphrase" type="password" autocomplete="off"></label>
     <p class="hint" id="vaultHint"></p>
   </section>
 
   <section>
-    <h2>Data</h2>
+    <h2 data-i18n="secData"></h2>
     <dl class="stats" id="usage"></dl>
-    <button id="clear" type="button" class="btn">Clear cache</button>
+    <button id="clear" type="button" class="btn" data-i18n="clearCache"></button>
   </section>
   </div>
 </main>
 
-<div class="bar" id="bar"><div><span id="status" role="status"></span><button id="save" type="button" class="primary">Save</button></div></div>
+<div class="bar" id="bar"><div><span id="status" role="status"></span><button id="save" type="button" class="primary" data-i18n="save"></button></div></div>
 <script type="module" src="options.js"></script>
 </body>
 </html>

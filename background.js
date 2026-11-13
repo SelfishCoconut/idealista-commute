@@ -5,6 +5,7 @@ import { buildMapSvg } from './lib/map.js';
 import * as sightengine from './lib/sightengine.js';
 import * as direct from './lib/direct.js';
 import { vaultState } from './lib/vault.js';
+import { t } from './lib/i18n.js';
 
 const DEFAULTS = {
   serverUrl: '', // empty = http://127.0.0.1:8085 (this machine); or any server speaking docs/backend-api.md
@@ -55,7 +56,7 @@ async function cached(key, producer, { cacheNull = true } = {}) {
 async function checkLocalLimit(s) {
   const month = new Date().toISOString().slice(0, 7);
   const { usage = {} } = await browser.storage.local.get('usage');
-  if ((usage.routes?.[month] || 0) >= s.googleLimit) throw new ProviderError(`Monthly route limit (${s.googleLimit}) reached in this browser; raise it in the options.`, { fatal: true });
+  if ((usage.routes?.[month] || 0) >= s.googleLimit) throw new ProviderError(t('errRouteLimit', s.googleLimit), { fatal: true });
 }
 
 async function bumpUsage() {
@@ -79,13 +80,13 @@ async function geocode(query, s) {
 
 async function commute(title, pin) {
   const s = await getSettings();
-  if (s.locked && s.backend === 'browser') return { status: 'error', fatal: true, message: 'API keys are locked: open the extension options and enter your passphrase.' };
-  if (!s.workAddress) return { status: 'setup', message: 'Set your work address in the extension options.' };
+  if (s.locked && s.backend === 'browser') return { status: 'error', fatal: true, message: t('errLocked') };
+  if (!s.workAddress) return { status: 'setup', message: t('errSetupWork') };
   const addr = parseAddress(title, s.citySuffix);
   if (!addr) return { status: 'noaddr' };
 
   const work = await geocode(s.workAddress, s);
-  if (!work) return { status: 'error', message: 'Work address not found.' };
+  if (!work) return { status: 'error', message: t('errWorkNotFound') };
   // A pin read from idealista's own map beats any address geocoding (no street-name mix-ups).
   const usePin = pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng);
   const home = usePin ? { lat: pin.lat, lng: pin.lng } : await geocode(addr, s);
@@ -120,13 +121,13 @@ async function mapFor(route) {
 // 'server' uses POST /ai-check (credentials on the server, shared cache and cap). Same answer shape either way.
 async function aiCheck(images, s) {
   if (s.aiSource !== 'browser') return backend.aiCheck(images, s);
-  if (s.locked) throw Object.assign(new Error('API keys are locked: open the extension options and enter your passphrase.'), { fatal: true });
-  if (!(s.sightengineUser && s.sightengineSecret)) throw Object.assign(new Error('Photo check is set to use your own Sightengine key, but none is saved. Add it in the options.'), { fatal: true });
+  if (s.locked) throw Object.assign(new Error(t('errLocked')), { fatal: true });
+  if (!(s.sightengineUser && s.sightengineSecret)) throw Object.assign(new Error(t('errNoSightKey')), { fatal: true });
   const month = new Date().toISOString().slice(0, 7);
   const { usage = {} } = await browser.storage.local.get('usage');
   usage.ai ||= {};
   const left = s.sightengineLimit - (usage.ai[month] || 0);
-  if (left < images.length) throw Object.assign(new Error(`Monthly photo limit (${s.sightengineLimit}) reached in this browser; raise it in the options.`), { fatal: true });
+  if (left < images.length) throw Object.assign(new Error(t('errPhotoLimit', s.sightengineLimit)), { fatal: true });
   const results = await Promise.all(images.map(async (url) => {
     try { return { url, score: await sightengine.scoreImage(url, { user: s.sightengineUser, secret: s.sightengineSecret }) }; }
     catch (e) { return { url, error: e.message, fatal: !!e.fatal }; }
@@ -157,7 +158,7 @@ async function updateBadge() {
   const locked = v.exists && !v.unlocked;
   await browser.action.setBadgeText({ text: locked ? '!' : '' });
   if (locked) await browser.action.setBadgeBackgroundColor({ color: '#b42318' });
-  await browser.action.setTitle({ title: locked ? 'Idealista Commute: API keys locked, click to unlock' : 'Idealista Commute' });
+  await browser.action.setTitle({ title: locked ? t('badgeLockedTitle') : t('actionTitle') });
 }
 browser.storage.onChanged.addListener((c, area) => {
   if (area === 'session' || area === 'local') updateBadge();

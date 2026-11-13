@@ -3,9 +3,12 @@ import { normalizeServerUrl, DEFAULT_URL } from './lib/url.js';
 import { health } from './lib/backend.js';
 import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
 import { vaultState, unlock, saveSecrets, SECRET_FIELDS } from './lib/vault.js';
+import { t, applyI18n } from './lib/i18n.js';
 import { ORIGINS as DIRECT_ORIGINS, validTileUrl } from './lib/direct.js';
 
 const $ = (id) => document.getElementById(id);
+applyI18n();
+document.title = t('optTitle');
 let vault = { exists: false, unlocked: false, secrets: {} };
 let legacy = false; // keys still sitting unencrypted in settings from before the vault existed
 
@@ -29,8 +32,8 @@ function showSource() {
   $('aiServerHint').hidden = key;
 }
 function showPreview() {
-  const w = $('workAddress').value.trim(), t = $('arriveBy').value;
-  $('previewCap').textContent = w ? `Example of the row added to each listing, to ${w}${t ? ' by ' + t : ''}` : 'Example of the row added to each listing';
+  const w = $('workAddress').value.trim(), tm = $('arriveBy').value;
+  $('previewCap').textContent = !w ? t('previewCap') : tm ? t('previewCapToBy', w, tm) : t('previewCapTo', w);
 }
 function setTest(kind, text) {
   $('testDot').className = 'dot' + (kind ? ' ' + kind : '');
@@ -48,9 +51,9 @@ async function load() {
   legacy = !vault.exists && SECRET_FIELDS.some((f) => settings[f]);
   const sec = vault.exists ? vault.secrets : settings;
   for (const f of SECRET_FIELDS) { $(f).value = sec[f] || ''; $(f).disabled = locked; }
-  $('vaultHint').textContent = locked ? 'Your keys are locked.'
-    : vault.exists ? 'Keys are encrypted. To change them, enter the passphrase here when saving.'
-    : 'Choose a passphrase (8+ characters) to encrypt your API keys. You will unlock it from the toolbar icon once per browser session. It cannot be recovered: if you forget it, re-enter the keys.';
+  $('vaultHint').textContent = locked ? t('vaultLocked')
+    : vault.exists ? t('vaultEncrypted')
+    : t('vaultNew');
   $('workAddress').value = settings.workAddress || '';
   $('arriveBy').value = settings.arriveBy || '09:00';
   $('citySuffix').value = settings.citySuffix || 'Madrid, España';
@@ -66,7 +69,7 @@ async function load() {
   document.querySelector(`input[name=backend][value=${settings.backend === 'browser' ? 'browser' : 'server'}]`).checked = true;
   showBackend(); showSource(); showPreview();
   const month = new Date().toISOString().slice(0, 7);
-  $('usage').replaceChildren(dl('Routes this month', usage.routes?.[month] || 0), dl('Photos scanned here', usage.ai?.[month] || 0));
+  $('usage').replaceChildren(dl(t('usageRoutes'), usage.routes?.[month] || 0), dl(t('usagePhotos'), usage.ai?.[month] || 0));
 }
 for (const id of ['workAddress', 'arriveBy']) $(id).addEventListener('input', showPreview);
 for (const r of document.querySelectorAll('input[name=aiSource]')) r.addEventListener('change', showSource);
@@ -83,16 +86,16 @@ async function grantServer(raw) {
 }
 
 $('test').addEventListener('click', async () => {
-  setTest('busy', 'Testing…');
+  setTest('busy', t('testBusy'));
   const url = await grantServer($('serverUrl').value);
-  if (!url) { setTest('bad', 'Invalid address, or permission refused'); return; }
+  if (!url) { setTest('bad', t('testBadUrl')); return; }
   try {
     const j = await health(url);
-    const ai = j.aiCheck ? `photo check on (${j.aiCallsThisMonth ?? 0}/${j.aiMonthlyLimit ?? '∞'} this month)` : 'photo check not set up';
-    if (j.routing) setTest('ok', `Connected · ${j.routing} routing, ${j.paidCallsThisMonth ?? 0}/${j.monthlyLimit ?? '∞'} calls this month · ${ai}`);
-    else setTest('bad', 'Reached the server, but it has no routing backend (set GOOGLE_API_KEY in server/.env)');
+    const ai = j.aiCheck ? t('testAiOn', j.aiCallsThisMonth ?? 0, j.aiMonthlyLimit ?? '∞') : t('testAiOff');
+    if (j.routing) setTest('ok', t('testOk', j.routing, j.paidCallsThisMonth ?? 0, j.monthlyLimit ?? '∞', ai));
+    else setTest('bad', t('testNoRouting'));
   } catch (e) {
-    setTest('bad', `Cannot reach ${url}: ${e.message}`);
+    setTest('bad', t('testCannot', url, e.message));
   }
 });
 
@@ -101,24 +104,24 @@ $('save').addEventListener('click', async () => {
   const locked = vault.exists && !vault.unlocked;
   const backend = backendChoice(), googleKey = locked ? vault.secrets.googleKey || '' : $('googleKey').value.trim();
   if (!locked && backend === 'browser' && !googleKey) {
-    $('status').textContent = 'Not saved: enter your Google Routes API key, or choose "My server".';
+    $('status').textContent = t('saveNeedGoogle');
     return;
   }
   const sightUser = locked ? '' : $('sightengineUser').value.trim(), sightSecret = locked ? '' : $('sightengineSecret').value.trim();
   if (!locked && aiSource === 'browser' && !(sightUser && sightSecret)) {
-    $('status').textContent = 'Not saved: enter your Sightengine API user and secret, or choose "My server".';
+    $('status').textContent = t('saveNeedSight');
     return;
   }
   const secrets = { googleKey, sightengineUser: sightUser, sightengineSecret: sightSecret };
   const pass = $('passphrase').value;
   const changed = !locked && SECRET_FIELDS.some((f) => (secrets[f] || '') !== (vault.exists ? vault.secrets[f] || '' : ''));
   if ((changed || legacy) && Object.values(secrets).some(Boolean) && pass.length < 8) {
-    $('status').textContent = 'Not saved: enter a passphrase of at least 8 characters to encrypt the keys.';
+    $('status').textContent = t('saveNeedPass');
     return;
   }
   const tileUrl = $('tileUrl').value.trim();
   if (backend === 'browser' && tileUrl && !validTileUrl(tileUrl)) {
-    $('status').textContent = 'Not saved: the map tiles URL must be https and contain {z}, {x} and {y}.';
+    $('status').textContent = t('saveBadTile');
     return;
   }
   const needServer = backend === 'server' || aiSource === 'server';
@@ -129,11 +132,11 @@ $('save').addEventListener('click', async () => {
   const { settings = {} } = await browser.storage.local.get('settings');
   const serverUrl = await pending;
   if (!(await sightPending)) {
-    $('status').textContent = 'Not saved: permission to reach the services you chose to call from this browser was refused (choose "My server" instead).';
+    $('status').textContent = t('savePermRefused');
     return;
   }
   if (serverUrl === null) {
-    $('status').textContent = 'Not saved: the server URL is invalid, or the permission to reach it was refused.';
+    $('status').textContent = t('saveBadServer');
     return;
   }
   const next = {
@@ -153,11 +156,11 @@ $('save').addEventListener('click', async () => {
   for (const f of SECRET_FIELDS) delete next[f]; // never into settings; they go to the encrypted vault
   await browser.storage.local.set({ settings: next });
   if (changed || legacy) {
-    try { await saveSecrets(secrets, pass); } catch (e) { $('status').textContent = `Settings saved, but the keys were not: ${e.message}`; return; }
+    try { await saveSecrets(secrets, pass); } catch (e) { $('status').textContent = t('saveKeysFailed', e.message); return; }
     $('passphrase').value = '';
   }
   await load();
-  $('status').textContent = 'Saved. Reload your idealista tab to apply.';
+  $('status').textContent = t('saved');
 });
 
 
@@ -165,7 +168,7 @@ $('clear').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);
   const drop = Object.keys(all).filter((k) => /^(g|r\d*|p|l|ai|aip):/.test(k));
   await browser.storage.local.remove(drop);
-  $('status').textContent = `Cleared ${drop.length} cached entries.`;
+  $('status').textContent = t('cleared', drop.length);
 });
 
 $('gate').addEventListener('submit', async (e) => {

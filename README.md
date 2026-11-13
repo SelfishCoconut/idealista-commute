@@ -1,10 +1,14 @@
 <div align="center">
 
-# 🚇 Idealista Commute
+<img src="icons/icon-128.png" width="96" alt="Commute Time for Idealista logo">
+
+# Commute Time for Idealista
 
 **See how long every idealista listing is from your work, by public transport, without leaving the results page.**
 
-Firefox extension · self-hostable backend · your API key never leaves your server
+Spanish by default, English when your browser is in English.
+
+Firefox extension · run it on your own server or entirely in the browser · your API keys stay encrypted
 
 ![Firefox](https://img.shields.io/badge/Firefox-140%2B-ff7139?logo=firefoxbrowser&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4b8bbe)
@@ -27,8 +31,8 @@ Firefox extension · self-hostable backend · your API key never leaves your ser
   [Sightengine](https://sightengine.com)'s AI-image detector and shows the % chance each one is AI-generated, so you
   can spot a fake advertisement. Optional, needs a free Sightengine account, and works two ways: put the credentials in
   `server/.env` (`SIGHTENGINE_USER`/`SIGHTENGINE_SECRET`: key stays on the server, shared cache and cap), or type them into
-  the extension options (the browser calls Sightengine directly, no server needed; the secret is stored in plain text in
-  your browser profile). The options choose which one is used. Every scanned photo is cached, so it is never scanned twice.
+  the extension options (the browser calls Sightengine directly, no server needed; the credentials are stored encrypted
+  behind your passphrase, see [Your keys](#your-keys)). The options choose which one is used. Every scanned photo is cached, so it is never scanned twice.
 - **Cheap by design**: every answer is cached, in your browser and on your server, so the same trip is never paid
   for twice, and the server enforces a hard monthly cap on paid calls.
 - **Your backend, your rules**: the extension talks to *one* server through a [small HTTP contract](docs/backend-api.md).
@@ -90,14 +94,25 @@ No dependencies; Node 22+. Everything is configured through environment variable
 
 ### 2. Install the extension
 
+- **Signed build (permanent):** download the `.xpi` from the
+  [latest release](https://github.com/SelfishCoconut/idealista-commute/releases/latest), then in Firefox open
+  `about:addons` → gear icon → *Install Add-on From File…*.
 - **Temporary (testing):** Firefox → `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → pick
   `manifest.json` in this folder.
-- **Permanent:** use a signed build: see [Packaging](#packaging).
+- **Your own signed build:** see [Packaging](#packaging).
 
 ### 3. Configure
 
 Open the extension's options, set your **work address** and **arrive-by** time, press **Test server** and **Save**.
 Reload your idealista tab.
+
+### Your keys
+
+If you use *This browser* mode or your own Sightengine key, the API keys are encrypted with a passphrase you choose
+(AES-256-GCM, key derived with PBKDF2, 600 000 rounds). Only ciphertext is written to disk; the decrypted keys live in
+memory until the browser closes. When they are locked, the toolbar icon shows a red `!`, opens an unlock popup (and
+tries to open it when you load idealista), and the options page shows only an unlock form. Forget the passphrase and
+you simply re-enter the keys. With a server, the keys stay in the server's `.env` and none of this applies.
 
 ## Self-hosting and sharing
 
@@ -163,7 +178,7 @@ Implement the four endpoints in [`docs/backend-api.md`](docs/backend-api.md) in 
   OpenStreetMap services (Nominatim, then Photon). **Rounded coordinates** go to Google for routing. Tiles come from
   OpenStreetMap through your server (or, in *This browser* mode, straight from OpenStreetMap with a `User-Agent` that
   identifies this app, as their tile and Nominatim policies require; the tile URL is configurable in the options).
-- No analytics, no accounts. Settings and caches stay in your browser's extension storage.
+- No analytics, no accounts. Settings and caches stay in your browser's extension storage. See [PRIVACY.md](PRIVACY.md).
 
 ## Repository layout
 
@@ -171,7 +186,9 @@ Implement the four endpoints in [`docs/backend-api.md`](docs/backend-api.md) in 
 manifest.json, background.js        extension core (settings, caching, throttling)
 content.js / content.css            what appears on idealista (commute line, sort entry, map)
 options.html / options.js           settings page
-lib/backend.js                      the extension's ONLY network client (talks to your server)
+lib/backend.js, lib/direct.js       network clients: your server, or Google Routes/OpenStreetMap straight from the browser
+lib/vault.js, popup.*               encrypted key storage and the unlock popup
+icons/                              logo (icon.svg is the source of the PNGs)
 lib/idealista.js, address.js, …     page parsing, address clean-up, map drawing, helpers
 lib/vendor/leaflet/                 Leaflet (BSD-2-Clause) for the interactive map
 server/gateway/                     reference backend: gateway.mjs (HTTP, cache, caps), google.mjs (Google Routes)
@@ -202,8 +219,7 @@ Get the API credentials at <https://addons.mozilla.org/developers/addon/api/key/
 
 - **Written without access to the live idealista site**, which blocks non-browser clients. The listing selectors,
   the *Ordenar* menu hook and the `/mapa` parser are tolerant and were exercised against local copies of the markup,
-  not the real pages. If something doesn't show, open an issue with the browser console output (turn on *Log raw
-  route responses* in the options); a saved copy of a listing's `/mapa` page makes a perfect test fixture.
+  not the real pages. If something doesn't show, open an issue with the browser console output; a saved copy of a listing's `/mapa` page makes a perfect test fixture.
 - Sorting covers the results on the current page only; idealista paginates on its server.
 - Spain only (geocoding is restricted to it).
 

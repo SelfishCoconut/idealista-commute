@@ -1,0 +1,549 @@
+{
+  "extName": {
+    "message": "Commute Time for Idealista"
+  },
+  "extDescription": {
+    "message": "Shows the public-transport commute time to your workplace, with steps and a map, on every idealista listing, and sorts results by it."
+  },
+  "actionTitle": {
+    "message": "Commute Time for Idealista"
+  },
+  "badgeLockedTitle": {
+    "message": "Commute Time: API keys locked, click to unlock"
+  },
+  "calculating": {
+    "message": "Calculating commute…"
+  },
+  "openMaps": {
+    "message": "Open in Google Maps"
+  },
+  "mapTitle": {
+    "message": "Route map"
+  },
+  "mapUnavailable": {
+    "message": "Map unavailable: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openOptions": {
+    "message": "Open options"
+  },
+  "noRoute": {
+    "message": "No transit route found"
+  },
+  "locNotFound": {
+    "message": "Location not found"
+  },
+  "locNotFoundAt": {
+    "message": "Location not found: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errorGeneric": {
+    "message": "Error"
+  },
+  "noResponse": {
+    "message": "no response"
+  },
+  "direct": {
+    "message": "Direct"
+  },
+  "changeOne": {
+    "message": "1 change"
+  },
+  "changeMany": {
+    "message": "$N1$ changes",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "srcPin": {
+    "message": "listing pin on idealista"
+  },
+  "srcApprox": {
+    "message": "approximate area on idealista"
+  },
+  "srcAddress": {
+    "message": "≈ from \"$N1$\"",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepWalk": {
+    "message": "Walk $N1$ min",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepStops": {
+    "message": "$N1$ stops",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepToward": {
+    "message": "toward $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "scanning": {
+    "message": "Scanning photos…"
+  },
+  "aiLikely": {
+    "message": "Likely AI-generated photos"
+  },
+  "aiInconclusive": {
+    "message": "Inconclusive"
+  },
+  "aiReal": {
+    "message": "Photos look real"
+  },
+  "aiTitle": {
+    "message": "$N1$: $N2$ of $N3$ photos scanned, highest chance of AI $N4$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      },
+      "n3": {
+        "content": "$3"
+      },
+      "n4": {
+        "content": "$4"
+      }
+    }
+  },
+  "aiShort": {
+    "message": "AI"
+  },
+  "aiFailed": {
+    "message": "AI check failed: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "scanForAi": {
+    "message": "Scan for AI"
+  },
+  "noPhotos": {
+    "message": "No listing photos found on this page"
+  },
+  "scannedAlt": {
+    "message": "Scanned listing photo"
+  },
+  "aiDisclaimer": {
+    "message": "Automatic estimate by Sightengine on a random sample, not proof. High scores can also come from virtual staging or heavy editing."
+  },
+  "scanOther": {
+    "message": "Scan other random photos"
+  },
+  "sortEntry": {
+    "message": "Commute time"
+  },
+  "sortBtn": {
+    "message": "Sort by commute time"
+  },
+  "sortedBtn": {
+    "message": "Sorted by commute time (undo)"
+  },
+  "sortedStatus": {
+    "message": "Sorted by commute time"
+  },
+  "calcProgress": {
+    "message": "Calculating $N1$/$N2$…",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "mapHome": {
+    "message": "Home"
+  },
+  "mapWork": {
+    "message": "Work"
+  },
+  "errLocked": {
+    "message": "API keys are locked: click the extension icon and enter your passphrase."
+  },
+  "errSetupWork": {
+    "message": "Set your work address in the extension options."
+  },
+  "errWorkNotFound": {
+    "message": "Work address not found."
+  },
+  "errRouteLimit": {
+    "message": "Monthly route limit ($N1$) reached in this browser; raise it in the options.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errPhotoLimit": {
+    "message": "Monthly photo limit ($N1$) reached in this browser; raise it in the options.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errNoSightKey": {
+    "message": "Photo check is set to use your own Sightengine key, but none is saved. Add it in the options."
+  },
+  "errGeocoders": {
+    "message": "Geocoders unavailable (OpenStreetMap). Check your connection and the permissions in the options."
+  },
+  "errNoGoogleKey": {
+    "message": "Add your Google Routes API key in the options (or switch to \"My server\")."
+  },
+  "errGoogleRejected": {
+    "message": "Google rejected the key: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errGoogleFailed": {
+    "message": "Google Routes failed"
+  },
+  "errSightUnreachable": {
+    "message": "Sightengine not reachable (permission refused, or offline)."
+  },
+  "errSightNoScore": {
+    "message": "Sightengine returned no ai_generated score"
+  },
+  "errServerUrl": {
+    "message": "Invalid server URL in options."
+  },
+  "errServerUnreachable": {
+    "message": "Server not reachable at $N1$. Is it running? Check the server URL in the options.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errServerGeocode": {
+    "message": "Server geocoding failed ($N1$)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errServerStatus": {
+    "message": "Server $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errWrongPass": {
+    "message": "Wrong passphrase."
+  },
+  "popupTitle": {
+    "message": "Commute Time"
+  },
+  "popupNone": {
+    "message": "No encrypted keys yet. Add them in the options."
+  },
+  "popupLocked": {
+    "message": "Your API keys are locked."
+  },
+  "popupUnlocked": {
+    "message": "Keys unlocked until the browser closes."
+  },
+  "passphrase": {
+    "message": "Passphrase"
+  },
+  "unlock": {
+    "message": "Unlock"
+  },
+  "lockNow": {
+    "message": "Lock now"
+  },
+  "optTitle": {
+    "message": "Commute Time options"
+  },
+  "optSub": {
+    "message": "Commute time and a fake-photo check on every idealista listing"
+  },
+  "optLockedTitle": {
+    "message": "Locked"
+  },
+  "optLockedHint": {
+    "message": "Your API keys are encrypted. Enter the passphrase to open the settings; it stays unlocked until the browser closes."
+  },
+  "previewLabel": {
+    "message": "Preview"
+  },
+  "previewCap": {
+    "message": "Example of the row added to each listing"
+  },
+  "previewCapTo": {
+    "message": "Example of the row added to each listing, to $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewCapToBy": {
+    "message": "Example of the row added to each listing, to $N1$ by $N2$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "secCommute": {
+    "message": "Commute"
+  },
+  "workAddress": {
+    "message": "Work address"
+  },
+  "workAddressPh": {
+    "message": "Paseo de la Castellana 100, Madrid"
+  },
+  "arriveBy": {
+    "message": "Arrive by"
+  },
+  "arriveByHint": {
+    "message": "Planned for the next weekday"
+  },
+  "city": {
+    "message": "City"
+  },
+  "cityHint": {
+    "message": "Added to listings that don't name one"
+  },
+  "cityPh": {
+    "message": "Madrid, España"
+  },
+  "pinTitle": {
+    "message": "Use idealista's exact pin"
+  },
+  "pinHint": {
+    "message": "Reads each listing's map page, slowly. Falls back to the address if idealista objects"
+  },
+  "secWhere": {
+    "message": "Where it runs"
+  },
+  "backendAria": {
+    "message": "Commute backend"
+  },
+  "optServer": {
+    "message": "My server"
+  },
+  "optBrowser": {
+    "message": "This browser"
+  },
+  "serverWhy": {
+    "message": "Your server is only used for the photo check"
+  },
+  "serverUrl": {
+    "message": "Server URL"
+  },
+  "serverUrlHint": {
+    "message": "Leave empty for this machine, or enter an address such as 192.168.1.50 or https://commute.example.org"
+  },
+  "accessToken": {
+    "message": "Access token"
+  },
+  "accessTokenHint": {
+    "message": "Only if the server sets ACCESS_TOKEN"
+  },
+  "testServer": {
+    "message": "Test server"
+  },
+  "googleKey": {
+    "message": "Google Routes API key"
+  },
+  "routesMonth": {
+    "message": "Routes per month"
+  },
+  "tileUrl": {
+    "message": "Map tiles URL"
+  },
+  "optional": {
+    "message": "(optional)"
+  },
+  "tileUrlHint": {
+    "message": "Leave empty for OpenStreetMap, or use another provider's template with {z} {x} {y}. The attribution shown stays OpenStreetMap's: add your provider's if it requires one"
+  },
+  "browserNote": {
+    "message": "No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored encrypted with your passphrase (see Key passphrase), answers are cached here only, and the monthly limit is counted per browser."
+  },
+  "secPhoto": {
+    "message": "Fake-photo check"
+  },
+  "photoAria": {
+    "message": "Photo check source"
+  },
+  "optMyKey": {
+    "message": "My Sightengine key"
+  },
+  "aiServerHint": {
+    "message": "The server holds the credentials (SIGHTENGINE_USER, SIGHTENGINE_SECRET) and shares one cache and monthly limit."
+  },
+  "apiUser": {
+    "message": "API user"
+  },
+  "apiSecret": {
+    "message": "API secret"
+  },
+  "photosMonth": {
+    "message": "Photos per month"
+  },
+  "sightNote": {
+    "message": "The browser calls <a>Sightengine</a> directly, no server needed. The credentials are stored encrypted with your passphrase (see Key passphrase)."
+  },
+  "secVault": {
+    "message": "Key passphrase"
+  },
+  "vaultLocked": {
+    "message": "Your keys are locked."
+  },
+  "vaultEncrypted": {
+    "message": "Keys are encrypted. To change them, enter the passphrase here when saving."
+  },
+  "vaultNew": {
+    "message": "Choose a passphrase (8+ characters) to encrypt your API keys. You will unlock it from the toolbar icon once per browser session. It cannot be recovered: if you forget it, re-enter the keys."
+  },
+  "secData": {
+    "message": "Data"
+  },
+  "usageRoutes": {
+    "message": "Routes this month"
+  },
+  "usagePhotos": {
+    "message": "Photos scanned here"
+  },
+  "clearCache": {
+    "message": "Clear cache"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "testBusy": {
+    "message": "Testing…"
+  },
+  "testBadUrl": {
+    "message": "Invalid address, or permission refused"
+  },
+  "testAiOn": {
+    "message": "photo check on ($N1$/$N2$ this month)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "testAiOff": {
+    "message": "photo check not set up"
+  },
+  "testOk": {
+    "message": "Connected · $N1$ routing, $N2$/$N3$ calls this month · $N4$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      },
+      "n3": {
+        "content": "$3"
+      },
+      "n4": {
+        "content": "$4"
+      }
+    }
+  },
+  "testNoRouting": {
+    "message": "Reached the server, but it has no routing backend (set GOOGLE_API_KEY in server/.env)"
+  },
+  "testCannot": {
+    "message": "Cannot reach $N1$: $N2$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "saveNeedGoogle": {
+    "message": "Not saved: enter your Google Routes API key, or choose \"My server\"."
+  },
+  "saveNeedSight": {
+    "message": "Not saved: enter your Sightengine API user and secret, or choose \"My server\"."
+  },
+  "saveNeedPass": {
+    "message": "Not saved: enter a passphrase of at least 8 characters to encrypt the keys."
+  },
+  "saveBadTile": {
+    "message": "Not saved: the map tiles URL must be https and contain {z}, {x} and {y}."
+  },
+  "savePermRefused": {
+    "message": "Not saved: permission to reach the services you chose to call from this browser was refused (choose \"My server\" instead)."
+  },
+  "saveBadServer": {
+    "message": "Not saved: the server URL is invalid, or the permission to reach it was refused."
+  },
+  "saveKeysFailed": {
+    "message": "Settings saved, but the keys were not: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "saved": {
+    "message": "Saved. Reload your idealista tab to apply."
+  },
+  "cleared": {
+    "message": "Cleared $N1$ cached entries.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unlockBad": {
+    "message": "Wrong passphrase."
+  }
+}

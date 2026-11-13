@@ -81,7 +81,7 @@ test('backend.geocode: hit, miss, unreachable', async () => {
     globalThis.fetch = async () => new Response(JSON.stringify({ found: false }));
     assert.equal(await geocode('zzz', {}), null);
     globalThis.fetch = async () => { throw new TypeError('network'); };
-    await assert.rejects(geocode('x', { serverUrl: '10.0.0.9' }), /not reachable at http:\/\/10\.0\.0\.9:8085/);
+    await assert.rejects(geocode('x', { serverUrl: '10.0.0.9' }), /errServerUnreachable:http:\/\/10\.0\.0\.9:8085/);
   } finally { globalThis.fetch = real; }
 });
 
@@ -109,7 +109,7 @@ test('buildMapSvg frames both points, fetches only the tiles in view, escapes te
   assert.match(svg, /OpenStreetMap contributors/);
   assert.equal((svg.match(/<image /g) || []).length, n);
   const none = await buildMapSvg({ steps: [], home, work }, async () => { throw new Error('down'); });
-  assert.ok(!none.includes('<image') && none.includes('Home') && none.includes('Work')); // still draws without tiles
+  assert.ok(!none.includes('<image') && none.includes('mapHome') && none.includes('mapWork')); // still draws without tiles
 });
 
 test('parseRoute decodes and thins polylines, null when not found', async () => {

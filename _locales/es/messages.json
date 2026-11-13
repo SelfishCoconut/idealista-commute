@@ -1,0 +1,549 @@
+{
+  "extName": {
+    "message": "Tiempo al trabajo para Idealista"
+  },
+  "extDescription": {
+    "message": "Muestra en cada anuncio de idealista el tiempo en transporte público hasta tu trabajo, con pasos y mapa, y ordena los resultados por trayecto."
+  },
+  "actionTitle": {
+    "message": "Tiempo al trabajo para Idealista"
+  },
+  "badgeLockedTitle": {
+    "message": "Tiempo al trabajo: claves bloqueadas, haz clic para desbloquear"
+  },
+  "calculating": {
+    "message": "Calculando trayecto…"
+  },
+  "openMaps": {
+    "message": "Abrir en Google Maps"
+  },
+  "mapTitle": {
+    "message": "Mapa de la ruta"
+  },
+  "mapUnavailable": {
+    "message": "Mapa no disponible: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openOptions": {
+    "message": "Abrir opciones"
+  },
+  "noRoute": {
+    "message": "No hay ruta en transporte público"
+  },
+  "locNotFound": {
+    "message": "Ubicación no encontrada"
+  },
+  "locNotFoundAt": {
+    "message": "Ubicación no encontrada: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errorGeneric": {
+    "message": "Error"
+  },
+  "noResponse": {
+    "message": "sin respuesta"
+  },
+  "direct": {
+    "message": "Directo"
+  },
+  "changeOne": {
+    "message": "1 trasbordo"
+  },
+  "changeMany": {
+    "message": "$N1$ trasbordos",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "srcPin": {
+    "message": "ubicación exacta del anuncio en idealista"
+  },
+  "srcApprox": {
+    "message": "zona aproximada en idealista"
+  },
+  "srcAddress": {
+    "message": "≈ a partir de «$N1$»",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepWalk": {
+    "message": "Andar $N1$ min",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepStops": {
+    "message": "$N1$ paradas",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "stepToward": {
+    "message": "dir. $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "scanning": {
+    "message": "Analizando fotos…"
+  },
+  "aiLikely": {
+    "message": "Fotos probablemente generadas por IA"
+  },
+  "aiInconclusive": {
+    "message": "No concluyente"
+  },
+  "aiReal": {
+    "message": "Las fotos parecen reales"
+  },
+  "aiTitle": {
+    "message": "$N1$: $N2$ de $N3$ fotos analizadas, mayor probabilidad de IA $N4$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      },
+      "n3": {
+        "content": "$3"
+      },
+      "n4": {
+        "content": "$4"
+      }
+    }
+  },
+  "aiShort": {
+    "message": "IA"
+  },
+  "aiFailed": {
+    "message": "Falló el análisis de IA: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "scanForAi": {
+    "message": "Analizar fotos con IA"
+  },
+  "noPhotos": {
+    "message": "No se encontraron fotos del anuncio en esta página"
+  },
+  "scannedAlt": {
+    "message": "Foto analizada del anuncio"
+  },
+  "aiDisclaimer": {
+    "message": "Estimación automática de Sightengine sobre una muestra aleatoria, no una prueba. Las puntuaciones altas también pueden deberse a home staging virtual o a mucha edición."
+  },
+  "scanOther": {
+    "message": "Analizar otras fotos al azar"
+  },
+  "sortEntry": {
+    "message": "Tiempo al trabajo"
+  },
+  "sortBtn": {
+    "message": "Ordenar por tiempo al trabajo"
+  },
+  "sortedBtn": {
+    "message": "Ordenado por tiempo al trabajo (deshacer)"
+  },
+  "sortedStatus": {
+    "message": "Ordenado por tiempo al trabajo"
+  },
+  "calcProgress": {
+    "message": "Calculando $N1$/$N2$…",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "mapHome": {
+    "message": "Casa"
+  },
+  "mapWork": {
+    "message": "Trabajo"
+  },
+  "errLocked": {
+    "message": "Las claves de API están bloqueadas: haz clic en el icono de la extensión e introduce tu contraseña."
+  },
+  "errSetupWork": {
+    "message": "Indica tu dirección de trabajo en las opciones de la extensión."
+  },
+  "errWorkNotFound": {
+    "message": "No se encontró la dirección de trabajo."
+  },
+  "errRouteLimit": {
+    "message": "Límite mensual de rutas ($N1$) alcanzado en este navegador; súbelo en las opciones.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errPhotoLimit": {
+    "message": "Límite mensual de fotos ($N1$) alcanzado en este navegador; súbelo en las opciones.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errNoSightKey": {
+    "message": "La comprobación de fotos usa tu propia clave de Sightengine, pero no hay ninguna guardada. Añádela en las opciones."
+  },
+  "errGeocoders": {
+    "message": "Geocodificadores no disponibles (OpenStreetMap). Revisa tu conexión y los permisos en las opciones."
+  },
+  "errNoGoogleKey": {
+    "message": "Añade tu clave de la API Google Routes en las opciones (o cambia a «Mi servidor»)."
+  },
+  "errGoogleRejected": {
+    "message": "Google rechazó la clave: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errGoogleFailed": {
+    "message": "Falló Google Routes"
+  },
+  "errSightUnreachable": {
+    "message": "Sightengine no responde (permiso denegado o sin conexión)."
+  },
+  "errSightNoScore": {
+    "message": "Sightengine no devolvió ninguna puntuación"
+  },
+  "errServerUrl": {
+    "message": "URL de servidor no válida en las opciones."
+  },
+  "errServerUnreachable": {
+    "message": "No se puede conectar con el servidor en $N1$. ¿Está en marcha? Revisa la URL del servidor en las opciones.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errServerGeocode": {
+    "message": "Falló la geocodificación del servidor ($N1$)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errServerStatus": {
+    "message": "Servidor $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errWrongPass": {
+    "message": "Contraseña incorrecta."
+  },
+  "popupTitle": {
+    "message": "Tiempo al trabajo"
+  },
+  "popupNone": {
+    "message": "Aún no hay claves cifradas. Añádelas en las opciones."
+  },
+  "popupLocked": {
+    "message": "Tus claves de API están bloqueadas."
+  },
+  "popupUnlocked": {
+    "message": "Claves desbloqueadas hasta que se cierre el navegador."
+  },
+  "passphrase": {
+    "message": "Contraseña"
+  },
+  "unlock": {
+    "message": "Desbloquear"
+  },
+  "lockNow": {
+    "message": "Bloquear ahora"
+  },
+  "optTitle": {
+    "message": "Opciones de Tiempo al trabajo"
+  },
+  "optSub": {
+    "message": "Tiempo de trayecto y comprobación de fotos falsas en cada anuncio de idealista"
+  },
+  "optLockedTitle": {
+    "message": "Bloqueado"
+  },
+  "optLockedHint": {
+    "message": "Tus claves de API están cifradas. Introduce la contraseña para abrir los ajustes; seguirán desbloqueados hasta que se cierre el navegador."
+  },
+  "previewLabel": {
+    "message": "Vista previa"
+  },
+  "previewCap": {
+    "message": "Ejemplo de la fila que se añade a cada anuncio"
+  },
+  "previewCapTo": {
+    "message": "Ejemplo de la fila que se añade a cada anuncio, hasta $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewCapToBy": {
+    "message": "Ejemplo de la fila que se añade a cada anuncio, hasta $N1$ para las $N2$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "secCommute": {
+    "message": "Trayecto"
+  },
+  "workAddress": {
+    "message": "Dirección de trabajo"
+  },
+  "workAddressPh": {
+    "message": "Paseo de la Castellana 100, Madrid"
+  },
+  "arriveBy": {
+    "message": "Llegar a las"
+  },
+  "arriveByHint": {
+    "message": "Calculado para el próximo día laborable"
+  },
+  "city": {
+    "message": "Ciudad"
+  },
+  "cityHint": {
+    "message": "Se añade a los anuncios que no la indican"
+  },
+  "cityPh": {
+    "message": "Madrid, España"
+  },
+  "pinTitle": {
+    "message": "Usar la ubicación exacta de idealista"
+  },
+  "pinHint": {
+    "message": "Lee la página de mapa de cada anuncio, despacio. Si idealista se opone, usa la dirección"
+  },
+  "secWhere": {
+    "message": "Dónde se ejecuta"
+  },
+  "backendAria": {
+    "message": "Origen del cálculo de trayectos"
+  },
+  "optServer": {
+    "message": "Mi servidor"
+  },
+  "optBrowser": {
+    "message": "Este navegador"
+  },
+  "serverWhy": {
+    "message": "Tu servidor solo se usa para la comprobación de fotos"
+  },
+  "serverUrl": {
+    "message": "URL del servidor"
+  },
+  "serverUrlHint": {
+    "message": "Déjalo vacío para este equipo, o escribe una dirección como 192.168.1.50 o https://commute.example.org"
+  },
+  "accessToken": {
+    "message": "Token de acceso"
+  },
+  "accessTokenHint": {
+    "message": "Solo si el servidor define ACCESS_TOKEN"
+  },
+  "testServer": {
+    "message": "Probar servidor"
+  },
+  "googleKey": {
+    "message": "Clave de la API Google Routes"
+  },
+  "routesMonth": {
+    "message": "Rutas al mes"
+  },
+  "tileUrl": {
+    "message": "URL de teselas del mapa"
+  },
+  "optional": {
+    "message": "(opcional)"
+  },
+  "tileUrlHint": {
+    "message": "Déjalo vacío para usar OpenStreetMap, o usa la plantilla de otro proveedor con {z} {x} {y}. La atribución mostrada sigue siendo la de OpenStreetMap: añade la de tu proveedor si la exige"
+  },
+  "browserNote": {
+    "message": "Sin servidor: este navegador llama a Google Routes con tu clave y a OpenStreetMap (Nominatim, Photon, teselas) directamente. Restringe la clave a la API Routes en Google Cloud. Se guarda cifrada con tu contraseña (ver Contraseña de las claves), las respuestas se guardan solo aquí y el límite mensual se cuenta por navegador."
+  },
+  "secPhoto": {
+    "message": "Comprobación de fotos falsas"
+  },
+  "photoAria": {
+    "message": "Origen de la comprobación de fotos"
+  },
+  "optMyKey": {
+    "message": "Mi clave de Sightengine"
+  },
+  "aiServerHint": {
+    "message": "El servidor guarda las credenciales (SIGHTENGINE_USER, SIGHTENGINE_SECRET) y comparte una caché y un límite mensual."
+  },
+  "apiUser": {
+    "message": "Usuario de la API"
+  },
+  "apiSecret": {
+    "message": "Secreto de la API"
+  },
+  "photosMonth": {
+    "message": "Fotos al mes"
+  },
+  "sightNote": {
+    "message": "El navegador llama directamente a <a>Sightengine</a>, sin servidor. Las credenciales se guardan cifradas con tu contraseña (ver Contraseña de las claves)."
+  },
+  "secVault": {
+    "message": "Contraseña de las claves"
+  },
+  "vaultLocked": {
+    "message": "Tus claves están bloqueadas."
+  },
+  "vaultEncrypted": {
+    "message": "Las claves están cifradas. Para cambiarlas, introduce aquí la contraseña al guardar."
+  },
+  "vaultNew": {
+    "message": "Elige una contraseña (mínimo 8 caracteres) para cifrar tus claves de API. La desbloquearás desde el icono de la barra una vez por sesión del navegador. No se puede recuperar: si la olvidas, vuelve a introducir las claves."
+  },
+  "secData": {
+    "message": "Datos"
+  },
+  "usageRoutes": {
+    "message": "Rutas este mes"
+  },
+  "usagePhotos": {
+    "message": "Fotos analizadas aquí"
+  },
+  "clearCache": {
+    "message": "Borrar caché"
+  },
+  "save": {
+    "message": "Guardar"
+  },
+  "testBusy": {
+    "message": "Probando…"
+  },
+  "testBadUrl": {
+    "message": "Dirección no válida o permiso denegado"
+  },
+  "testAiOn": {
+    "message": "comprobación de fotos activa ($N1$/$N2$ este mes)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "testAiOff": {
+    "message": "comprobación de fotos sin configurar"
+  },
+  "testOk": {
+    "message": "Conectado · enrutado $N1$, $N2$/$N3$ llamadas este mes · $N4$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      },
+      "n3": {
+        "content": "$3"
+      },
+      "n4": {
+        "content": "$4"
+      }
+    }
+  },
+  "testNoRouting": {
+    "message": "Se llegó al servidor, pero no tiene motor de rutas (define GOOGLE_API_KEY en server/.env)"
+  },
+  "testCannot": {
+    "message": "No se puede conectar con $N1$: $N2$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "saveNeedGoogle": {
+    "message": "No guardado: introduce tu clave de Google Routes, o elige «Mi servidor»."
+  },
+  "saveNeedSight": {
+    "message": "No guardado: introduce tu usuario y secreto de Sightengine, o elige «Mi servidor»."
+  },
+  "saveNeedPass": {
+    "message": "No guardado: introduce una contraseña de al menos 8 caracteres para cifrar las claves."
+  },
+  "saveBadTile": {
+    "message": "No guardado: la URL de teselas debe ser https y contener {z}, {x} y {y}."
+  },
+  "savePermRefused": {
+    "message": "No guardado: se denegó el permiso para llamar desde este navegador a los servicios elegidos (elige «Mi servidor» en su lugar)."
+  },
+  "saveBadServer": {
+    "message": "No guardado: la URL del servidor no es válida o se denegó el permiso para acceder a ella."
+  },
+  "saveKeysFailed": {
+    "message": "Ajustes guardados, pero no las claves: $N1$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "saved": {
+    "message": "Guardado. Recarga tu pestaña de idealista para aplicarlo."
+  },
+  "cleared": {
+    "message": "Se borraron $N1$ entradas de caché.",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unlockBad": {
+    "message": "Contraseña incorrecta."
+  }
+}

@@ -1,6 +1,7 @@
 // Runs on idealista pages. It only reads the listing titles already rendered in YOUR browser
 // and asks the background script for the commute; it never fetches idealista itself.
 (() => {
+  const t = (key, ...subs) => browser.i18n.getMessage(key, subs.map(String));
   // ---- Selectors live here so a site change is a one-line fix. ----
   // idealista result cards: <article class="item ..."> with <a class="item-link" title="Piso en calle X, Barrio, Madrid">
   const CARD = 'article.item, article[data-element-id]';
@@ -41,7 +42,7 @@
     let b = card.querySelector('.icm-badge');
     if (!b) {
       b = el('div', 'icm-badge icm-loading');
-      b.append(headRow(el('span', 'icm-txt', 'Calculating commute…')));;
+      b.append(headRow(el('span', 'icm-txt', t('calculating'))));;
       const host = card.querySelector(HOST) || card;
       // Cards with a fixed height would let the expanded panel run over the next listing; let them grow instead.
       host.classList.add('icm-host'); card.classList.add('icm-host');
@@ -56,6 +57,13 @@
     11: ['#007f3b', '#fff'], 12: ['#a49800', '#fff'], R: ['#fff', '#000'] };
   const MODE = { subway: ['#1d4ed8', '#fff', 'Ⓜ'], bus: ['#c2410c', '#fff', '🚌'], rail: ['#15803d', '#fff', '🚆'], tram: ['#a21caf', '#fff', '🚊'] };
 
+  // Step text is built here from the step's own fields so it follows the language; a server's ready-made text is the fallback.
+  function stepText(st) {
+    if (st.mode === 'walk') return /^Walk \d+ min$/.test(st.text || '') ? t('stepWalk', st.minutes) : st.text;
+    if (typeof st.label !== 'string' || !st.minutes) return st.text;
+    return [`${st.label} ${st.line || ''}`.trim(), st.from && st.to ? `${st.from} → ${st.to}` : '', st.headsign ? t('stepToward', st.headsign) : '',
+      st.stops ? t('stepStops', st.stops) : ''].filter(Boolean).join(' · ') + ` (${st.minutes} min)`;
+  }
   const colorOf = (s) => ((s.mode === 'subway' && METRO[s.line]) ? METRO[s.line] : (MODE[s.mode] || ['#444', '#fff']));
 
   const gmapsUrl = (r) => `https://www.google.com/maps/dir/?api=1&origin=${r.home.lat},${r.home.lng}&destination=${r.work.lat},${r.work.lng}&travelmode=transit`;
@@ -65,7 +73,7 @@
   function mapBlock(r) {
     const wrap = el('div', 'icm-maps');
     const box = el('div', 'icm-mapbox');
-    const open = el('a', 'icm-open', 'Open in Google Maps');
+    const open = el('a', 'icm-open', t('openMaps'));
     open.href = gmapsUrl(r);
     open.target = '_blank';
     open.rel = 'noopener noreferrer';
@@ -88,7 +96,7 @@
       await browser.storage.local.set({ ['m:' + id]: route });
       const frame = el('iframe', 'icm-iframe');
       frame.src = browser.runtime.getURL('map.html') + '#' + id;
-      frame.title = 'Route map';
+      frame.title = t('mapTitle');
       box.append(frame);
     })();
     setTimeout(async () => { // fallback if the interactive map never reports back
@@ -97,11 +105,11 @@
       browser.storage.local.remove(['m:' + id, 'd:' + id]);
       try {
         const res = await ask({ type: 'map', route: { steps: r.steps, home: r.home, work: r.work } });
-        if (!res?.svg) throw new Error(res?.error || 'no map');
+        if (!res?.svg) throw new Error(res?.error || 'map');
         const doc = new DOMParser().parseFromString(res.svg, 'image/svg+xml');
         box.replaceChildren(document.importNode(doc.documentElement, true));
       } catch (err) {
-        box.replaceChildren(el('div', 'icm-ride-meta', 'Map unavailable: ' + err.message));
+        box.replaceChildren(el('div', 'icm-ride-meta', t('mapUnavailable', err.message)));
       }
     }, 8000);
     return wrap;
@@ -113,13 +121,13 @@
     delete card.dataset.icmMin;
     if (r.status !== 'ok') {
       b.classList.add('icm-muted');
-      const msg = r.status === 'noroute' ? 'No transit route found'
-        : r.status === 'noaddr' ? `Location not found${r.address ? `: ${r.address}` : ''}`
+      const msg = r.status === 'noroute' ? t('noRoute')
+        : r.status === 'noaddr' ? (r.address ? t('locNotFoundAt', r.address) : t('locNotFound'))
         : r.status === 'setup' ? r.message.replace(/\.$/, '')
-        : (r.message || 'Error').replace(/\.$/, '');
+        : (r.message || t('errorGeneric')).replace(/\.$/, '');
       const head = headRow(el('span', 'icm-txt', msg));
       if (r.status === 'setup' || r.fatal) {
-        head.append(el('span', 'icm-link', 'Open options'));
+        head.append(el('span', 'icm-link', t('openOptions')));
         head.classList.add('icm-click');
         head.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); browser.runtime.sendMessage({ type: 'openOptions' }); });
       }
@@ -129,7 +137,7 @@
     }
     card.dataset.icmMin = String(r.minutes);
     const head = headRow(el('strong', 'icm-min', `${r.minutes} min`),
-      el('span', 'icm-txt', r.transfers === 0 ? 'Direct' : `${r.transfers} change${r.transfers === 1 ? '' : 's'}`),
+      el('span', 'icm-txt', r.transfers === 0 ? t('direct') : r.transfers === 1 ? t('changeOne') : t('changeMany', r.transfers)),
       aiField(idOf(card), true, card),
       icon('chevron', 'icm-chev'));
     head.classList.add('icm-click');
@@ -139,8 +147,8 @@
     const panel = el('div', 'icm-panel');
     panel.hidden = true;
     const list = el('ol', 'icm-steps');
-    for (const st of r.steps) list.append(el('li', null, st.text));
-    const where = r.source === 'pin' ? 'listing pin on idealista' : r.source === 'pin-approx' ? 'approximate area on idealista' : `≈ from "${r.address}"`;
+    for (const st of r.steps) list.append(el('li', null, stepText(st)));
+    const where = r.source === 'pin' ? t('srcPin') : r.source === 'pin-approx' ? t('srcApprox') : t('srcAddress', r.address);
     list.append(el('div', 'icm-note', `${where} · ${r.provider}`));
     panel.append(list);
     let opened = false;
@@ -252,7 +260,7 @@
         }
         const pin = await pinFor(card);
         const r = await ask({ type: 'commute', title: t, pin });
-        render(card, b, r || { status: 'error', message: 'no response' });
+        render(card, b, r || { status: 'error', message: t('noResponse') });
         await saveResult(card, r);
         if (r?.fatal || r?.status === 'setup') stopped = true; // don't hammer after a bad key / missing setup
       } catch (e) {
@@ -293,11 +301,11 @@
     const todo = cards().filter((c) => !c.dataset.icmMin && !jobs.has(c));
     let done = 0;
     sorting = true;
-    if (todo.length) setStatus(`Calculating 0/${todo.length}…`);
-    await Promise.all(todo.map((c) => handle(c).then(() => setStatus(`Calculating ${++done}/${todo.length}…`))));
+    if (todo.length) setStatus(t('calcProgress', 0, todo.length));
+    await Promise.all(todo.map((c) => handle(c).then(() => setStatus(t('calcProgress', ++done, todo.length)))));
     await Promise.all(cards().map((c) => jobs.get(c)).filter(Boolean)); // any still in flight from scrolling
     sorting = false;
-    if (sortOn) { applySort(); setStatus('Sorted by commute time'); }
+    if (sortOn) { applySort(); setStatus(t('sortedStatus')); }
   }
   // New cards arriving while sorting (infinite scroll / filters) get computed and sorted in.
   function scheduleResort() {
@@ -317,7 +325,7 @@
     for (const sel of document.querySelectorAll('select')) {
       const opts = [...sel.options];
       if (!opts.some((o) => /relevancia/i.test(o.textContent))) continue;
-      const o = new Option('Tiempo al trabajo', 'icm-commute');
+      const o = new Option(t('sortEntry'), 'icm-commute');
       o.setAttribute('data-icm-sort', '1');
       sel.append(o);
       sel.addEventListener('change', (e) => { if (sel.value === 'icm-commute') { e.stopImmediatePropagation(); setSort(true); } else if (sortOn) setSort(false); }, true);
@@ -342,7 +350,7 @@
     clone.className = clone.className.replace(/\b\S*(active|selected|current|checked)\S*\b/gi, '').trim() || clone.className;
     const leaf = [...clone.querySelectorAll('*')].reverse().find((n) => ownText(n)) || clone;
     [...leaf.childNodes].filter((c) => c.nodeType === 3).forEach((c) => c.remove());
-    leaf.prepend('Tiempo al trabajo');
+    leaf.prepend(t('sortEntry'));
     clone.style.cursor = 'pointer';
     clone.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setSort(true, barStatus); }, true);
     list.append(clone);
@@ -354,11 +362,11 @@
     const first = cards()[0];
     if (!first?.parentElement) return;
     const bar = el('div', 'icm-sortbar');
-    const btn = el('button', 'icm-sortbtn', 'Sort by commute time');
+    const btn = el('button', 'icm-sortbtn', t('sortBtn'));
     btn.type = 'button';
     const status = el('span', 'icm-sortstatus');
     barStatus = (t) => { status.textContent = t; };
-    btn.addEventListener('click', () => { btn.classList.toggle('icm-on', !sortOn); btn.textContent = sortOn ? 'Sort by commute time' : 'Sorted by commute time (undo)'; setSort(!sortOn, barStatus); });
+    btn.addEventListener('click', () => { btn.classList.toggle('icm-on', !sortOn); btn.textContent = sortOn ? t('sortBtn') : t('sortedBtn'); setSort(!sortOn, barStatus); });
     bar.append(btn, status);
     first.parentElement.insertBefore(bar, first);
   }
@@ -394,7 +402,7 @@
   // The result is a field in the commute row ("28 min · 1 change | 97% AI"). On the listing page the field is also the
   // button that scans up to 3 random photos (Sightengine); result lists show it for listings scanned before.
   // Per-photo scores are cached (browser 30 days, server 30 days), so the same photo is never scanned twice.
-  const verdict = (max) => (max >= 0.7 ? ['bad', 'Likely AI-generated photos'] : max >= 0.3 ? ['warn', 'Inconclusive'] : ['ok', 'Photos look real']);
+  const verdict = (max) => (max >= 0.7 ? ['bad', t('aiLikely')] : max >= 0.3 ? ['warn', t('aiInconclusive')] : ['ok', t('aiReal')]);
   const pct = (x) => Math.round(x * 100) + '%';
   const aiRes = new Map(), aiFields = new Map(), aiBusy = new Set(), aiLoaded = new Set(), aiCards = new Map();
   let detailHolder = null;
@@ -405,14 +413,14 @@
     f.className = 'icm-aifield';
     f.removeAttribute('role'); f.removeAttribute('tabindex'); f.removeAttribute('title');
     const r = aiRes.get(id), scored = scoredOf(r);
-    if (aiBusy.has(id)) { f.append(el('span', 'icm-txt', 'Scanning photos…')); return; }
+    if (aiBusy.has(id)) { f.append(el('span', 'icm-txt', t('scanning'))); return; }
     if (scored.length) {
       const max = Math.max(...scored.map((i) => i.score)), [level, label] = verdict(max);
       f.classList.add('icm-ai-' + level);
-      f.title = `${label}: ${scored.length} of ${r.total} photos scanned, highest chance of AI ${pct(max)}`;
-      f.append(el('strong', 'icm-min', pct(max)), el('span', 'icm-txt', 'AI'));
-    } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', 'AI check failed: ' + (r.error.length > 48 ? r.error.slice(0, 47) + '…' : r.error))); }
-    else if (f._scan) f.append(el('span', 'icm-link', 'Scan for AI'));
+      f.title = t('aiTitle', label, scored.length, r.total, pct(max));
+      f.append(el('strong', 'icm-min', pct(max)), el('span', 'icm-txt', t('aiShort')));
+    } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', t('aiFailed', r.error.length > 48 ? r.error.slice(0, 47) + '…' : r.error))); }
+    else if (f._scan) f.append(el('span', 'icm-link', t('scanForAi')));
     if (f._scan && !scored.length) { f.classList.add('icm-click'); f.setAttribute('role', 'button'); f.tabIndex = 0; }
   }
   function paintAll(id) {
@@ -468,13 +476,13 @@
       const ok = typeof i.score === 'number';
       const fig = el('div', 'icm-ai-photo' + (ok ? ' icm-ai-' + verdict(i.score)[0] : ''));
       const img = el('img');
-      img.src = i.url; img.alt = 'Scanned listing photo'; img.loading = 'lazy';
+      img.src = i.url; img.alt = t('scannedAlt'); img.loading = 'lazy';
       fig.append(img, el('span', 'icm-ai-pct', ok ? pct(i.score) : '?'));
       row.append(fig);
     }
     if (row.childElementCount) box.append(row);
-    box.append(el('div', 'icm-note', 'Automatic estimate by Sightengine on a random sample, not proof. High scores can also come from virtual staging or heavy editing.'));
-    const a = el('a', 'icm-open', 'Scan other random photos');
+    box.append(el('div', 'icm-note', t('aiDisclaimer')));
+    const a = el('a', 'icm-open', t('scanOther'));
     a.href = '#'; a.role = 'button';
     a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!aiBusy.has(id)) runAi(id); });
     box.append(a);
@@ -489,7 +497,7 @@
       const onPage = detailHolder && idOf(detailHolder) === id;
       const all = idl.photoUrls(onPage ? document.documentElement.outerHTML : await listingHtml(id, aiCards.get(id)));
       console.info('[idealista-commute] photo check: photos found on page:', all.length, all.slice(0, 3));
-      if (!all.length) { aiRes.set(id, { error: 'No listing photos found on this page', images: [] }); return; }
+      if (!all.length) { aiRes.set(id, { error: t('noPhotos'), images: [] }); return; }
       // Per-photo cache: a photo scanned before is never sent again; new random picks prefer unscanned photos.
       const stored = await browser.storage.local.get(all.map((u) => 'aip:' + u));
       const known = (u) => { const h = stored['aip:' + u]; return h && Date.now() - h.ts < 30 * 86400e3 ? h.score : undefined; };
