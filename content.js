@@ -123,12 +123,14 @@
         head.classList.add('icm-click');
         head.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); browser.runtime.sendMessage({ type: 'openOptions' }); });
       }
+      if (card.classList.contains('icm-detail') && r.status !== 'setup') head.append(aiField(idOf(card), true)); // photo check works without a route
       b.append(head);
       return;
     }
     card.dataset.icmMin = String(r.minutes);
     const head = headRow(el('strong', 'icm-min', `${r.minutes} min`),
       el('span', 'icm-txt', r.transfers === 0 ? 'Direct' : `${r.transfers} change${r.transfers === 1 ? '' : 's'}`),
+      aiField(idOf(card), card.classList.contains('icm-detail')),
       icon('chevron', 'icm-chev'));
     head.classList.add('icm-click');
     head.setAttribute('role', 'button');
@@ -384,86 +386,110 @@
     a.hidden = true;
     holder.append(a);
     (h1.closest('.main-info__title') || h1).after(holder);
-    aiPanel(m[1]).then((box) => holder.after(box)).catch(() => {});
+    detailHolder = holder;
     handle(holder).then(() => holder.querySelector('.icm-click.icm-head')?.click());
   }
 
-  // ---- AI-generated photo check (listing page only) ----------------------------------------------
-  // Picks up to 3 of the listing's photos at random and asks the server (Sightengine) how likely each is to be AI-made.
-  // Photos already scanned are cached on the server, so scanning again only costs quota for photos not seen before.
+  // ---- AI-generated photo check ------------------------------------------------------------------
+  // The result is a field in the commute row ("28 min · 1 change | 97% AI"). On the listing page the field is also the
+  // button that scans up to 3 random photos (Sightengine); result lists show it for listings scanned before.
+  // Per-photo scores are cached (browser 30 days, server 30 days), so the same photo is never scanned twice.
   const verdict = (max) => (max >= 0.7 ? ['bad', 'Likely AI-generated photos'] : max >= 0.3 ? ['warn', 'Inconclusive'] : ['ok', 'Photos look real']);
   const pct = (x) => Math.round(x * 100) + '%';
+  const aiRes = new Map(), aiFields = new Map(), aiBusy = new Set(), aiLoaded = new Set();
+  let detailHolder = null;
+  const scoredOf = (r) => (r?.images || []).filter((i) => typeof i.score === 'number');
 
-  function renderAi(box, id, r) {
-    box.className = 'icm-badge icm-ai';
+  function paintField(id, f) {
+    f.replaceChildren();
+    f.className = 'icm-aifield';
+    f.removeAttribute('role'); f.removeAttribute('tabindex'); f.removeAttribute('title');
+    const r = aiRes.get(id), scored = scoredOf(r);
+    if (aiBusy.has(id)) { f.append(el('span', 'icm-txt', 'Scanning photos…')); return; }
+    if (scored.length) {
+      const max = Math.max(...scored.map((i) => i.score)), [level, label] = verdict(max);
+      f.classList.add('icm-ai-' + level);
+      f.title = `${label}: ${scored.length} of ${r.total} photos scanned, highest chance of AI ${pct(max)}`;
+      f.append(el('strong', 'icm-min', pct(max)), el('span', 'icm-txt', 'AI'));
+    } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', 'AI check failed')); }
+    else if (f._scan) f.append(el('span', 'icm-link', 'Scan photos for AI'));
+    if (f._scan && !scored.length) { f.classList.add('icm-click'); f.setAttribute('role', 'button'); f.tabIndex = 0; }
+  }
+  function paintAll(id) {
+    for (const f of aiFields.get(id) || []) if (f.isConnected) paintField(id, f);
+    renderAiDetails(id);
+  }
+  async function loadAi(id) {
+    if (aiLoaded.has(id)) return;
+    aiLoaded.add(id);
+    const hit = (await browser.storage.local.get('ai:' + id))['ai:' + id];
+    if (hit && !aiRes.has(id) && Date.now() - hit.ts < 7 * 86400e3) { aiRes.set(id, hit); paintAll(id); }
+  }
+  // The field for one listing; `canScan` (listing page only) makes it the button that starts the scan.
+  function aiField(id, canScan) {
+    const f = el('span', 'icm-aifield');
+    f._scan = canScan;
+    (aiFields.get(id) || aiFields.set(id, new Set()).get(id)).add(f);
+    const go = (e) => { e.preventDefault(); e.stopPropagation(); if (canScan && !aiBusy.has(id) && !scoredOf(aiRes.get(id)).length) runAi(id); };
+    f.addEventListener('click', go);
+    f.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') go(e); });
+    paintField(id, f);
+    if (id) loadAi(id).catch(() => {});
+    return f;
+  }
+
+  // Thumbnails of the scanned photos (with their own %) under the commute row, listing page only.
+  function renderAiDetails(id) {
+    if (!detailHolder || idOf(detailHolder) !== id) return;
+    let box = detailHolder.nextElementSibling;
+    if (!box?.classList.contains('icm-ai')) { box = el('div', 'icm-badge icm-ai'); detailHolder.after(box); }
+    const r = aiRes.get(id);
     box.replaceChildren();
-    const scored = (r.images || []).filter((i) => typeof i.score === 'number');
-    if (!scored.length) {
-      box.classList.add('icm-muted');
-      const head = headRow(el('span', 'icm-txt', r.error || 'No photo could be scanned'));
-      box.append(head, rescanLink(box, id));
-      return;
-    }
-    const max = Math.max(...scored.map((i) => i.score));
-    const [level, label] = verdict(max);
-    box.classList.add('icm-ai-' + level);
-    const head = headRow(el('span', 'icm-min', pct(max)), el('span', 'icm-txt', `chance of AI · ${label} (${scored.length} of ${r.total} photos scanned)`));
+    box.hidden = !r; // nothing to show until a scan has produced something
+    if (!r) return;
+    if (r.error) box.append(el('div', 'icm-note', r.error));
     const row = el('div', 'icm-ai-photos');
-    for (const i of r.images) {
-      const fig = el('div', 'icm-ai-photo' + (typeof i.score === 'number' ? ' icm-ai-' + verdict(i.score)[0] : ''));
+    for (const i of r.images || []) {
+      const ok = typeof i.score === 'number';
+      const fig = el('div', 'icm-ai-photo' + (ok ? ' icm-ai-' + verdict(i.score)[0] : ''));
       const img = el('img');
       img.src = i.url; img.alt = 'Scanned listing photo'; img.loading = 'lazy';
-      fig.append(img, el('span', 'icm-ai-pct', typeof i.score === 'number' ? pct(i.score) : '?'));
+      fig.append(img, el('span', 'icm-ai-pct', ok ? pct(i.score) : '?'));
       row.append(fig);
     }
-    box.append(head, row,
-      el('div', 'icm-note', 'Automatic estimate by Sightengine on a random sample, not proof. High scores can also come from virtual staging or heavy editing.'),
-      rescanLink(box, id));
-  }
-  function rescanLink(box, id) {
+    if (row.childElementCount) box.append(row);
+    box.append(el('div', 'icm-note', 'Automatic estimate by Sightengine on a random sample, not proof. High scores can also come from virtual staging or heavy editing.'));
     const a = el('a', 'icm-open', 'Scan other random photos');
     a.href = '#'; a.role = 'button';
-    a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); runAi(box, id); });
-    return a;
+    a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!aiBusy.has(id)) runAi(id); });
+    box.append(a);
   }
-  async function runAi(box, id) {
-    box.className = 'icm-badge icm-loading';
-    box.replaceChildren(headRow(el('span', 'icm-txt', 'Scanning photos for AI…')));
+
+  async function runAi(id) {
+    aiBusy.add(id); paintAll(id);
     try {
       idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
       const all = idl.photoUrls(document.documentElement.outerHTML);
-      if (!all.length) return renderAi(box, id, { error: 'No listing photos found on this page', images: [] });
-      // Per-photo cache (30 days): a photo scanned before is never sent again. New random picks prefer unscanned photos.
-      const keys = all.map((u) => 'aip:' + u);
-      const stored = await browser.storage.local.get(keys);
+      if (!all.length) { aiRes.set(id, { error: 'No listing photos found on this page', images: [] }); return; }
+      // Per-photo cache: a photo scanned before is never sent again; new random picks prefer unscanned photos.
+      const stored = await browser.storage.local.get(all.map((u) => 'aip:' + u));
       const known = (u) => { const h = stored['aip:' + u]; return h && Date.now() - h.ts < 30 * 86400e3 ? h.score : undefined; };
-      const fresh = all.filter((u) => known(u) === undefined);
-      const pick = idl.pickRandom(fresh, 3);
+      const pick = idl.pickRandom(all.filter((u) => known(u) === undefined), 3);
       if (pick.length < 3) pick.push(...idl.pickRandom(all.filter((u) => !pick.includes(u)), 3 - pick.length));
       const todo = pick.filter((u) => known(u) === undefined);
       let scanned = [];
       if (todo.length) {
         const res = await ask({ type: 'aicheck', images: todo });
-        if (!res || res.error) return renderAi(box, id, { error: res?.error || 'no response', images: [] });
+        if (!res || res.error) { aiRes.set(id, { error: res?.error || 'no response', images: [] }); return; }
         scanned = res.images;
         await browser.storage.local.set(Object.fromEntries(scanned.filter((i) => typeof i.score === 'number').map((i) => ['aip:' + i.url, { ts: Date.now(), score: i.score }])));
       }
       const byUrl = new Map(scanned.map((i) => [i.url, i]));
-      const res = { images: pick.map((u) => byUrl.get(u) || { url: u, score: known(u) }) };
-      const r = { images: res.images, total: pick.length, ts: Date.now() };
+      const r = { images: pick.map((u) => byUrl.get(u) || { url: u, score: known(u) }), total: pick.length, ts: Date.now() };
+      aiRes.set(id, r);
       await browser.storage.local.set({ ['ai:' + id]: r });
-      renderAi(box, id, r);
-    } catch (e) { renderAi(box, id, { error: e.message, images: [] }); }
-  }
-  async function aiPanel(id) {
-    const box = el('div', 'icm-badge icm-ai');
-    const start = headRow(el('span', 'icm-txt', 'Check the photos for AI-generated images'), el('span', 'icm-link', 'Scan 3 random photos'));
-    start.classList.add('icm-click');
-    start.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); runAi(box, id); });
-    box.append(start);
-    const hit = (await browser.storage.local.get('ai:' + id))['ai:' + id];
-    if (hit && Date.now() - hit.ts < 7 * 86400e3) renderAi(box, id, hit);
-    return box;
+    } catch (e) { aiRes.set(id, { error: e.message, images: [] }); }
+    finally { aiBusy.delete(id); paintAll(id); }
   }
 
   // Cards are picked up immediately; the (heavier) menu/bar installation is throttled and can never break the badges.
