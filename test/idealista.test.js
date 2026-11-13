@@ -73,3 +73,10 @@ test('browser mode: lib/google.js is an exact copy of the server module; geocode
   assert.deepEqual(await geocode('q', { nominatimFn: async () => { throw new Error('x'); }, photonFn: async () => hit }), hit);
   await assert.rejects(() => geocode('q', { nominatimFn: async () => { throw new Error('x'); }, photonFn: async () => { throw new Error('y'); } }), (e) => e.retryable === true);
 });
+
+test('photoUrls falls back to any idealista image when the id.pro. naming is absent, but skips chrome images', async () => {
+  const { photoUrls } = await import('../lib/idealista.js');
+  const html = `<img src="https://img3.idealista.com/blur/WEB_DETAIL/0/abc/def/12345.jpg"><img src="https://img3.idealista.com/static/logo.png">
+    <img src="https://img3.idealista.com/blur/WEB_LISTING-M/0/abc/def/12345.jpg">`;
+  assert.deepEqual(photoUrls(html), ['https://img3.idealista.com/blur/WEB_DETAIL/0/abc/def/12345.jpg']);
+});

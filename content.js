@@ -411,7 +411,7 @@
       f.classList.add('icm-ai-' + level);
       f.title = `${label}: ${scored.length} of ${r.total} photos scanned, highest chance of AI ${pct(max)}`;
       f.append(el('strong', 'icm-min', pct(max)), el('span', 'icm-txt', 'AI'));
-    } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', 'AI check failed')); }
+    } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', 'AI check failed: ' + (r.error.length > 48 ? r.error.slice(0, 47) + '…' : r.error))); }
     else if (f._scan) f.append(el('span', 'icm-link', 'Scan photos for AI'));
     if (f._scan && !scored.length) { f.classList.add('icm-click'); f.setAttribute('role', 'button'); f.tabIndex = 0; }
   }
@@ -470,6 +470,7 @@
     try {
       idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
       const all = idl.photoUrls(document.documentElement.outerHTML);
+      console.info('[idealista-commute] photo check: photos found on page:', all.length, all.slice(0, 3));
       if (!all.length) { aiRes.set(id, { error: 'No listing photos found on this page', images: [] }); return; }
       // Per-photo cache: a photo scanned before is never sent again; new random picks prefer unscanned photos.
       const stored = await browser.storage.local.get(all.map((u) => 'aip:' + u));
@@ -479,7 +480,9 @@
       const todo = pick.filter((u) => known(u) === undefined);
       let scanned = [];
       if (todo.length) {
+        console.info('[idealista-commute] photo check: scanning', todo);
         const res = await ask({ type: 'aicheck', images: todo });
+        console.info('[idealista-commute] photo check: answer', res);
         if (!res || res.error) { aiRes.set(id, { error: res?.error || 'no response', images: [] }); return; }
         scanned = res.images;
         await browser.storage.local.set(Object.fromEntries(scanned.filter((i) => typeof i.score === 'number').map((i) => ['aip:' + i.url, { ts: Date.now(), score: i.score }])));
