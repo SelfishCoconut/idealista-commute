@@ -14,6 +14,18 @@
     <button id="unlock" type="submit" class="primary" data-i18n="unlock"></button>
   </form>
   <button id="lock" type="button" class="btn" data-i18n="lockNow" hidden></button>
+  <section id="prog" hidden>
+    <h2 data-i18n="progTitle"></h2>
+    <progress id="bar" max="1" value="0"></progress>
+    <p id="progText"></p>
+    <p id="progSub" class="sub"></p>
+  </section>
+  <form id="settings" hidden>
+    <h2 data-i18n="popSettings"></h2>
+    <label class="field"><span data-i18n="workAddress"></span><input id="workAddress" autocomplete="off"></label>
+    <label class="field"><span data-i18n="arriveBy"></span><input id="arriveBy" type="time"></label>
+    <button type="submit" class="primary" id="save" data-i18n="popSave"></button>
+  </form>
   <p class="err" id="err" role="alert"></p>
   <a href="#" id="options" data-i18n="openOptions"></a>
   <script type="module" src="popup.js"></script>

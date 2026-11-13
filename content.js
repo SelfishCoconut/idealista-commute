@@ -332,7 +332,14 @@
     extrasDone = !blocked;
     if (blocked) setStatus(t('pagesBlocked'));
   }
-  async function setSort(on, setStatus = () => {}) {
+  let sortStatus = '';
+  function progress() { // read by the toolbar popup
+    const cs = cards(), pending = cs.filter((c) => c.querySelector('.icm-badge.icm-loading')).length;
+    const ok = cs.filter((c) => c.dataset.icmMin).length;
+    return { total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0 };
+  }
+  async function setSort(on, report = () => {}) {
+    const setStatus = (m) => { sortStatus = m; report(m); };
     sortOn = on;
     if (!on) {
       for (const n of extras) n.remove();
@@ -590,7 +597,10 @@
     };
     document.addEventListener('pointerdown', retry, true); document.addEventListener('keydown', retry, true);
   }
-  browser.runtime.onMessage.addListener((m) => { if (m?.type === 'unlocked') location.reload(); });
+  browser.runtime.onMessage.addListener((m) => {
+    if (m?.type === 'unlocked') location.reload();
+    if (m?.type === 'getProgress') return Promise.resolve(progress());
+  });
   promptUnlock();
 
   scan();

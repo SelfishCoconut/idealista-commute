@@ -190,6 +190,51 @@
   "sortPagesCount": {
     "message": "Páginas como máximo"
   },
+  "progTitle": {
+    "message": "Progreso en esta página"
+  },
+  "progNoPage": {
+    "message": "Abre una página de resultados de idealista para ver el progreso"
+  },
+  "progCounts": {
+    "message": "$N1$ de $N2$ anuncios calculados",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "progFailed": {
+    "message": "$N1$ sin resultado (sin ruta, ubicación o error)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progPages": {
+    "message": "Incluye $N1$ páginas más de resultados",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progDone": {
+    "message": "Todo calculado"
+  },
+  "popSettings": {
+    "message": "Trabajo y hora de llegada"
+  },
+  "popSave": {
+    "message": "Guardar y recargar la página"
+  },
+  "popSaved": {
+    "message": "Guardado"
+  },
   "calcProgress": {
     "message": "Calculando $N1$/$N2$…",
     "placeholders": {

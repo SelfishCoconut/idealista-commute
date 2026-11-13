@@ -190,6 +190,51 @@
   "sortPagesCount": {
     "message": "Pages at most"
   },
+  "progTitle": {
+    "message": "Progress on this page"
+  },
+  "progNoPage": {
+    "message": "Open an idealista results page to see progress"
+  },
+  "progCounts": {
+    "message": "$N1$ of $N2$ listings calculated",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "progFailed": {
+    "message": "$N1$ without a result (no route, location or error)",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progPages": {
+    "message": "Includes $N1$ more result pages",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progDone": {
+    "message": "All calculated"
+  },
+  "popSettings": {
+    "message": "Work and arrival time"
+  },
+  "popSave": {
+    "message": "Save and reload the page"
+  },
+  "popSaved": {
+    "message": "Saved"
+  },
   "calcProgress": {
     "message": "Calculating $N1$/$N2$…",
     "placeholders": {
