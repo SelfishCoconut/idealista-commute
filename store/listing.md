@@ -3,6 +3,16 @@
 The extension is Spanish by default and English when Firefox is in English. Fill the listing in both languages
 (Spanish first, it is the default locale), then copy the shared sections below.
 
+## Submitting from the command line
+`store/amo-metadata.json` holds this listing (names, summaries, descriptions, privacy policy, Beerware as a custom
+license, reviewer notes) in the shape the AMO API wants:
+
+```sh
+npx web-ext sign --channel=listed --amo-metadata=store/amo-metadata.json --approval-timeout=0 --artifacts-dir web-ext-artifacts
+```
+Listed versions are reviewed by Mozilla, so no signed `.xpi` comes back right away. Screenshots can't be sent this way:
+add `store/screenshots/*.png` in the developer hub afterwards. Regenerate the JSON if you edit the text below.
+
 ## Name
 - es: Tiempo al trabajo para Idealista
 - en: Commute Time for Idealista
