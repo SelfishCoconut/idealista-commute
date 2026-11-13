@@ -37,7 +37,7 @@ $('test').addEventListener('click', async () => {
   try {
     const j = await health(url);
     out.textContent = j.routing
-      ? `✓ connected (routing: ${j.routing}, ${j.paidCallsThisMonth ?? 0}/${j.monthlyLimit ?? '∞'} paid calls this month, ${j.cache?.entries ?? 0} cached entries)`
+      ? `✓ connected (routing: ${j.routing}, ${j.paidCallsThisMonth ?? 0}/${j.monthlyLimit ?? '∞'} paid calls this month, AI photo check ${j.aiCheck ? `on (${j.aiCallsThisMonth ?? 0}/${j.aiMonthlyLimit ?? '∞'} photos this month)` : 'off'}, ${j.cache?.entries ?? 0} cached entries)`
       : '✗ reached the server but it has no routing backend configured (set GOOGLE_API_KEY in server/.env)';
   } catch (e) {
     out.textContent = `✗ cannot reach ${url}: ${e.name}: ${e.message}`;
@@ -68,7 +68,7 @@ $('save').addEventListener('click', async () => {
 
 $('clear').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);
-  const drop = Object.keys(all).filter((k) => /^(g|r\d*|p|l):/.test(k));
+  const drop = Object.keys(all).filter((k) => /^(g|r\d*|p|l|ai|aip):/.test(k));
   await browser.storage.local.remove(drop);
   $('status').textContent = `Cleared ${drop.length} cached entries.`;
 });

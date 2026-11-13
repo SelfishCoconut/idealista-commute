@@ -384,7 +384,86 @@
     a.hidden = true;
     holder.append(a);
     (h1.closest('.main-info__title') || h1).after(holder);
+    aiPanel(m[1]).then((box) => holder.after(box)).catch(() => {});
     handle(holder).then(() => holder.querySelector('.icm-click.icm-head')?.click());
+  }
+
+  // ---- AI-generated photo check (listing page only) ----------------------------------------------
+  // Picks up to 3 of the listing's photos at random and asks the server (Sightengine) how likely each is to be AI-made.
+  // Photos already scanned are cached on the server, so scanning again only costs quota for photos not seen before.
+  const verdict = (max) => (max >= 0.7 ? ['bad', 'Likely AI-generated photos'] : max >= 0.3 ? ['warn', 'Inconclusive'] : ['ok', 'Photos look real']);
+  const pct = (x) => Math.round(x * 100) + '%';
+
+  function renderAi(box, id, r) {
+    box.className = 'icm-badge icm-ai';
+    box.replaceChildren();
+    const scored = (r.images || []).filter((i) => typeof i.score === 'number');
+    if (!scored.length) {
+      box.classList.add('icm-muted');
+      const head = headRow(el('span', 'icm-txt', r.error || 'No photo could be scanned'));
+      box.append(head, rescanLink(box, id));
+      return;
+    }
+    const max = Math.max(...scored.map((i) => i.score));
+    const [level, label] = verdict(max);
+    box.classList.add('icm-ai-' + level);
+    const head = headRow(el('span', 'icm-min', pct(max)), el('span', 'icm-txt', `chance of AI · ${label} (${scored.length} of ${r.total} photos scanned)`));
+    const row = el('div', 'icm-ai-photos');
+    for (const i of r.images) {
+      const fig = el('div', 'icm-ai-photo' + (typeof i.score === 'number' ? ' icm-ai-' + verdict(i.score)[0] : ''));
+      const img = el('img');
+      img.src = i.url; img.alt = 'Scanned listing photo'; img.loading = 'lazy';
+      fig.append(img, el('span', 'icm-ai-pct', typeof i.score === 'number' ? pct(i.score) : '?'));
+      row.append(fig);
+    }
+    box.append(head, row,
+      el('div', 'icm-note', 'Automatic estimate by Sightengine on a random sample, not proof. High scores can also come from virtual staging or heavy editing.'),
+      rescanLink(box, id));
+  }
+  function rescanLink(box, id) {
+    const a = el('a', 'icm-open', 'Scan other random photos');
+    a.href = '#'; a.role = 'button';
+    a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); runAi(box, id); });
+    return a;
+  }
+  async function runAi(box, id) {
+    box.className = 'icm-badge icm-loading';
+    box.replaceChildren(headRow(el('span', 'icm-txt', 'Scanning photos for AI…')));
+    try {
+      idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
+      const all = idl.photoUrls(document.documentElement.outerHTML);
+      if (!all.length) return renderAi(box, id, { error: 'No listing photos found on this page', images: [] });
+      // Per-photo cache (30 days): a photo scanned before is never sent again. New random picks prefer unscanned photos.
+      const keys = all.map((u) => 'aip:' + u);
+      const stored = await browser.storage.local.get(keys);
+      const known = (u) => { const h = stored['aip:' + u]; return h && Date.now() - h.ts < 30 * 86400e3 ? h.score : undefined; };
+      const fresh = all.filter((u) => known(u) === undefined);
+      const pick = idl.pickRandom(fresh, 3);
+      if (pick.length < 3) pick.push(...idl.pickRandom(all.filter((u) => !pick.includes(u)), 3 - pick.length));
+      const todo = pick.filter((u) => known(u) === undefined);
+      let scanned = [];
+      if (todo.length) {
+        const res = await ask({ type: 'aicheck', images: todo });
+        if (!res || res.error) return renderAi(box, id, { error: res?.error || 'no response', images: [] });
+        scanned = res.images;
+        await browser.storage.local.set(Object.fromEntries(scanned.filter((i) => typeof i.score === 'number').map((i) => ['aip:' + i.url, { ts: Date.now(), score: i.score }])));
+      }
+      const byUrl = new Map(scanned.map((i) => [i.url, i]));
+      const res = { images: pick.map((u) => byUrl.get(u) || { url: u, score: known(u) }) };
+      const r = { images: res.images, total: pick.length, ts: Date.now() };
+      await browser.storage.local.set({ ['ai:' + id]: r });
+      renderAi(box, id, r);
+    } catch (e) { renderAi(box, id, { error: e.message, images: [] }); }
+  }
+  async function aiPanel(id) {
+    const box = el('div', 'icm-badge icm-ai');
+    const start = headRow(el('span', 'icm-txt', 'Check the photos for AI-generated images'), el('span', 'icm-link', 'Scan 3 random photos'));
+    start.classList.add('icm-click');
+    start.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); runAi(box, id); });
+    box.append(start);
+    const hit = (await browser.storage.local.get('ai:' + id))['ai:' + id];
+    if (hit && Date.now() - hit.ts < 7 * 86400e3) renderAi(box, id, hit);
+    return box;
   }
 
   // Cards are picked up immediately; the (heavier) menu/bar installation is throttled and can never break the badges.

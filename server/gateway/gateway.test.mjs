@@ -181,3 +181,69 @@ test('security: token required except /health, JSON-only /route, cap holds under
     assert.equal(calls, 2);
   } finally { srv.close(); }
 });
+
+const IMG = (n) => `https://img4.idealista.com/blur/WEB_DETAIL/0/id.pro.es.image.master/aa/bb/${n}.jpg`;
+
+test('ai-check: Sightengine called once per photo (credentials server-side), cached, validated, capped', async () => {
+  const calls = [];
+  const fetchImpl = async (u) => {
+    calls.push(new URL(u));
+    return json({ status: 'success', type: { ai_generated: 0.97 } });
+  };
+  const srv = createServer({ sightengine: { user: 'U', secret: 'S' }, aiMonthlyLimit: 4, fetchImpl, cache: new Cache(), geocode: async () => ({ found: false }) });
+  const base = await listen(srv);
+  const post = (b, h = { 'Content-Type': 'application/json' }) => fetch(`${base}/ai-check`, { method: 'POST', headers: h, body: JSON.stringify(b) });
+
+  const a = await post({ images: [IMG(1), IMG(2)] });
+  assert.equal(a.status, 200);
+  assert.deepEqual((await a.json()).images, [{ url: IMG(1), score: 0.97 }, { url: IMG(2), score: 0.97 }]);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].searchParams.get('models'), 'genai');
+  assert.equal(calls[0].searchParams.get('api_secret'), 'S');
+  assert.equal(calls[0].searchParams.get('url'), IMG(1));
+
+  await post({ images: [IMG(1), IMG(2)] }); // all cached: no new upstream calls, no quota used
+  assert.equal(calls.length, 2);
+  assert.equal((await (await fetch(`${base}/health`)).json()).aiCallsThisMonth, 2);
+
+  assert.equal((await post({ images: ['https://evil.example/x.jpg'] })).status, 400); // not an idealista image
+  assert.equal((await post({ images: ['http://img4.idealista.com/x.jpg'] })).status, 400); // not https
+  assert.equal((await post({ images: ['https://idealista.com.evil.example/x.jpg'] })).status, 400);
+  assert.equal((await post({ images: [IMG(1), IMG(2), IMG(3), IMG(4)] })).status, 400); // max 3
+  assert.equal((await post({ images: [] })).status, 400);
+  assert.equal((await post({ images: [IMG(1)] }, { 'Content-Type': 'text/plain' })).status, 415);
+
+  const over = await post({ images: [IMG(3), IMG(4), IMG(5)] }); // 2 used + 3 new > 4
+  assert.equal(over.status, 429);
+  assert.equal((await over.json()).fatal, true);
+  assert.equal(calls.length, 2);
+  srv.close();
+});
+
+test('ai-check: not configured -> fatal 503; one failed photo is reported, all failed -> error', async () => {
+  const none = createServer({ cache: new Cache() });
+  const b0 = await listen(none);
+  const r0 = await fetch(`${b0}/ai-check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: [IMG(1)] }) });
+  assert.equal(r0.status, 503);
+  assert.equal((await r0.json()).fatal, true);
+  none.close();
+
+  let n = 0;
+  const flaky = createServer({ sightengine: { user: 'U', secret: 'S' }, cache: new Cache(),
+    fetchImpl: async () => (++n === 1 ? json({ status: 'failure', error: { message: 'boom' } }, 500) : json({ status: 'success', type: { ai_generated: 0.1 } })) });
+  const b1 = await listen(flaky);
+  const post = (images) => fetch(`${b1}/ai-check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images }) });
+  const ok = await (await post([IMG(1), IMG(2)])).json();
+  assert.equal(ok.images.filter((i) => i.score === 0.1).length, 1);
+  assert.equal(ok.images.filter((i) => i.error).length, 1);
+  assert.equal((await (await fetch(`${b1}/health`)).json()).aiCallsThisMonth, 1); // failures don't use quota
+  flaky.close();
+
+  const badKey = createServer({ sightengine: { user: 'U', secret: 'S' }, cache: new Cache(),
+    fetchImpl: async () => json({ status: 'failure', error: { type: 'credentials_error', message: 'bad credentials' } }, 401) });
+  const b2 = await listen(badKey);
+  const r = await fetch(`${b2}/ai-check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: [IMG(1)] }) });
+  assert.equal(r.status, 502);
+  assert.deepEqual(await r.json(), { error: 'bad credentials', fatal: true });
+  badKey.close();
+});

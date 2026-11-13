@@ -97,6 +97,10 @@ browser.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'openOptions') return browser.runtime.openOptionsPage();
   if (msg?.type === 'tile') return getSettings().then((st) => backend.tileDataUrl(st.serverUrl, msg.z, msg.x, msg.y, st.accessToken)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'map') return mapFor(msg.route).then((svg) => ({ svg })).catch((e) => ({ error: e.message }));
+  if (msg?.type === 'aicheck') {
+    return getSettings().then((st) => backend.aiCheck(msg.images, st)).then((images) => ({ images }))
+      .catch((e) => ({ error: e.message || String(e), fatal: !!e.fatal }));
+  }
   if (msg?.type !== 'commute') return;
   return commute(msg.title, msg.pin).catch((e) => ({
     status: 'error',

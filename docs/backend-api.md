@@ -10,6 +10,7 @@ engine, a shared instance run by a friend. All endpoints are plain HTTP + JSON; 
 | `GET /health` | Liveness and a status line for the options page's **Test server** button |
 | `GET /geocode?q=TEXT` | Address/place text → coordinates |
 | `POST /route` | Public-transport route between two points |
+| `POST /ai-check` | Probability that up to 3 listing photos are AI-generated (optional; without it the photo check reports an error, everything else works) |
 | `GET /tile/{z}/{x}/{y}.png` | Map tile (optional; without it the map is blank, everything else works) |
 
 **Authentication (optional):** when the server sets `ACCESS_TOKEN`, every endpoint except `/health` requires
@@ -18,7 +19,7 @@ engine, a shared instance run by a friend. All endpoints are plain HTTP + JSON; 
 
 ## `GET /health`
 ```json
-{ "ok": true, "routing": "google", "paidCallsThisMonth": 12, "monthlyLimit": 2000, "cache": { "entries": 340 } }
+{ "ok": true, "routing": "google", "paidCallsThisMonth": 12, "monthlyLimit": 2000, "aiCheck": true, "aiCallsThisMonth": 6, "aiMonthlyLimit": 1500, "cache": { "entries": 340 } }
 ```
 `ok` must be `true`. `routing` is a name of the routing backend, or `null` when none is configured (the options
 page then reports that routing is not set up). The other fields are optional and only displayed.
@@ -60,6 +61,18 @@ Response:
 - No route: `{ "found": false }`.
 - Errors: a non-2xx status with `{ "error": "human readable message", "fatal": true|false }`. `fatal: true` means
   retrying cannot help (bad credentials, quota exhausted) and the extension stops and shows the message.
+
+## `POST /ai-check`
+Request (`Content-Type: application/json`): `{ "images": ["https://img4.idealista.com/....jpg", ...] }`, 1 to 3
+`https://*.idealista.com` image URLs (anything else is `400`: the reference server is not an open scoring proxy).
+```json
+{ "provider": "Sightengine", "images": [ { "url": "https://img4.idealista.com/...jpg", "score": 0.97 }, { "url": "...", "error": "download failed" } ] }
+```
+`score` is 0 to 1, the probability that the photo is AI-generated. A photo that could not be scored carries `error`
+instead (the others are still returned). When every photo fails, or the service is not configured (`503`), the
+answer is an error body like `/route`'s. The reference server uses Sightengine's `genai` model
+(`SIGHTENGINE_USER`, `SIGHTENGINE_SECRET`, `SIGHTENGINE_MONTHLY_LIMIT` in `server/.env`), caches each photo's score
+for 30 days and counts only photos actually sent to Sightengine against the monthly limit.
 
 ## `GET /tile/{z}/{x}/{y}.png`
 A standard slippy-map tile, zoom 1–17. The reference server proxies and caches OpenStreetMap tiles so the

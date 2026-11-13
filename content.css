@@ -57,3 +57,16 @@
 .icm-detail { margin: 12px 0 16px; }
 .icm-detail .icm-badge.icm-badge { margin-top: 0; }
 .icm-badge.icm-badge .icm-busy { opacity: .6; }
+
+/* AI-generated photo check (listing page) */
+.icm-ai.icm-badge { margin: 0 0 16px; }
+.icm-badge.icm-badge .icm-ai-photos { display: flex; gap: 8px; margin-top: 8px; }
+.icm-badge.icm-badge .icm-ai-photo { position: relative; flex: 1 1 0; max-width: 200px; aspect-ratio: 4 / 3; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, currentColor 8%, transparent); }
+.icm-badge.icm-badge .icm-ai-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.icm-badge.icm-badge .icm-ai-pct { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 3px; background: #1f2328; color: #fff; font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.icm-badge.icm-badge .icm-ai-photo.icm-ai-bad .icm-ai-pct { background: #b42318; }
+.icm-badge.icm-badge .icm-ai-photo.icm-ai-warn .icm-ai-pct { background: #a15c07; }
+.icm-badge.icm-badge .icm-ai-photo.icm-ai-ok .icm-ai-pct { background: #1a7f37; }
+.icm-badge.icm-ai-bad .icm-min { color: #b42318; }
+.icm-badge.icm-ai-warn .icm-min { color: #a15c07; }
+.icm-badge.icm-ai-ok .icm-min { color: #1a7f37; }

@@ -23,6 +23,9 @@ Firefox extension · self-hostable backend · your API key never leaves your ser
   without a result yet are computed; the rest come from cache.
 - **The exact pin**: the extension reads the listing's own map page (`/inmueble/<id>/mapa`) instead of guessing from
   the title, which avoids street-name mix-ups. If idealista objects it falls back to the address.
+- **Fake-photo check**: on a listing page, one click scans up to **3 random photos** with
+  [Sightengine](https://sightengine.com)'s AI-image detector and shows the % chance each one is AI-generated, so you
+  can spot a fake advertisement. Optional: needs a free Sightengine account (see [Server](#1-run-the-server)).
 - **Cheap by design**: every answer is cached, in your browser and on your server, so the same trip is never paid
   for twice, and the server enforces a hard monthly cap on paid calls.
 - **Your backend, your rules**: the extension talks to *one* server through a [small HTTP contract](docs/backend-api.md).
@@ -119,6 +122,7 @@ Friends can use *your* server: they install the extension, type its address in *
 |---|---|---|
 | Routes (start/end rounded to ~11 m + arrive-by) | server | 7 days (no-route: 1 day) |
 | Geocoding | server | 90 days (misses: 1 day) |
+| AI-photo scores (per photo URL) | server | 30 days |
 | Map tiles | server disk | 14 days |
 | All of the above + commute results | browser | 14 days (results: 12 h) |
 

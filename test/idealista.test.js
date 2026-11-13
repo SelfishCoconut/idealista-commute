@@ -31,3 +31,18 @@ test('looksBlocked detects bot checks', () => {
   assert.equal(looksBlocked(200, '<script src="https://geo.captcha-delivery.com/x.js">'), true);
   assert.equal(looksBlocked(200, '<html>mapa</html>'), false);
 });
+
+test('photoUrls keeps one (largest) URL per listing photo and ignores non-photo images', async () => {
+  const { photoUrls, pickRandom } = await import('../lib/idealista.js');
+  const P = (size, n) => `https://img4.idealista.com/blur/${size}/0/id.pro.es.image.master/aa/bb/${n}.jpg`;
+  const html = `<img src="${P('WEB_LISTING-M', 1)}"><img data-ondemand-img="${P('WEB_DETAIL-L-L', 1)}">
+    <script>{"url":"${P('WEB_DETAIL-L-L', 2).replace(/\//g, '\\/')}"}</script>
+    <img src="https://img3.idealista.com/logo/agency.png"><img src="https://example.com/id.pro.es.image.master/x.jpg">`;
+  assert.deepEqual(photoUrls(html), [P('WEB_DETAIL-L-L', 1), P('WEB_DETAIL-L-L', 2)]);
+  assert.deepEqual(photoUrls(''), []);
+
+  assert.equal(pickRandom([1, 2, 3, 4, 5], 3).length, 3);
+  assert.equal(new Set(pickRandom([1, 2, 3, 4, 5], 3)).size, 3);
+  assert.deepEqual(pickRandom([1, 2], 3).sort(), [1, 2]); // fewer photos than asked
+  assert.deepEqual(pickRandom([], 3), []);
+});

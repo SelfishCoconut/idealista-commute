@@ -4,6 +4,8 @@
 //   GET  /geocode?q=TEXT    -> { found, lat, lng, label, source }   (Nominatim, then Photon; cached, throttled)
 //   POST /route             -> transit route from a pluggable router (default: Google Routes with the server-side
 //                              API key; see ROUTER_MODULE in the README); answers cached, monthly call cap
+//   POST /ai-check          -> { images:[{url, score}|{url, error}] }: Sightengine AI-generated score (0..1) for up to 3
+//                              idealista photos (only when SIGHTENGINE_USER/SECRET are set; cached; monthly cap)
 //   GET  /tile/Z/X/Y.png    -> OpenStreetMap tile, cached on disk (only when TILE_DIR is set)
 //
 // Why: many people share one server, so a place is looked up on the public geocoders once, ever, and the
@@ -13,6 +15,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fetchGoogleRoute, targetArrival } from './google.mjs';
+import { scoreImage, isListingImage } from './sightengine.mjs';
 
 const DAY = 24 * 3600 * 1000;
 
@@ -103,7 +106,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods
 
 export function createServer({
   googleKey = '', googleEndpoint = undefined, router = null, accessToken = '', monthlyLimit = 2000, cache = new Cache(), geocode = makeGeocoder(),
-  fetchImpl = fetch, tileDir = null, tileTtl = 14 * DAY, contact = '', geoTtl = 90 * DAY, missTtl = DAY, routeTtl = 7 * DAY, noRouteTtl = DAY,
+  fetchImpl = fetch, sightengine = null, aiMonthlyLimit = 1500, aiTtl = 30 * DAY, tileDir = null, tileTtl = 14 * DAY, contact = '', geoTtl = 90 * DAY, missTtl = DAY, routeTtl = 7 * DAY, noRouteTtl = DAY,
 } = {}) {
   const send = (res, code, obj, extra = {}) => {
     res.writeHead(code, { 'Content-Type': 'application/json', ...CORS, ...extra });
@@ -119,6 +122,11 @@ export function createServer({
   // passing `router` (or ROUTER_MODULE in the environment); the default is Google Routes if a key is set.
   const routeFn = router || (googleKey ? (a) => fetchGoogleRoute({ key: googleKey, ...a, fetchImpl, endpoint: googleEndpoint }) : null);
   const routing = router ? (router.routerName || 'custom') : googleKey ? 'google' : null;
+  // AI-image scoring: {user, secret} for Sightengine, or a custom async (url) => ({score}) (tests, other providers).
+  const aiFn = typeof sightengine === 'function' ? sightengine
+    : sightengine?.user && sightengine?.secret ? (url) => scoreImage({ ...sightengine, url, fetchImpl, endpoint: sightengine.endpoint }) : null;
+  const aiUsed = () => cache.get('ua:' + month()) ?? 0;
+  let aiReserved = 0;
   const stats = { geocode: 0, route: 0, hits: 0, misses: 0 };
   const inflight = new Map();
   const month = () => new Date().toISOString().slice(0, 7);
@@ -156,7 +164,7 @@ export function createServer({
       }
 
       if (req.method === 'GET' && url.pathname === '/health') {
-        return send(res, 200, { ok: true, routing, paidCallsThisMonth: used(), monthlyLimit,
+        return send(res, 200, { ok: true, routing, paidCallsThisMonth: used(), monthlyLimit, aiCheck: !!aiFn, aiCallsThisMonth: aiUsed(), aiMonthlyLimit,
           cache: { entries: cache.size, ...stats } });
       }
 
@@ -181,6 +189,36 @@ export function createServer({
         const t = await tile(z, x, y);
         res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400', 'X-Cache': t.hit ? 'HIT' : 'MISS', ...CORS });
         return res.end(t.buf);
+      }
+
+      if (req.method === 'POST' && url.pathname === '/ai-check') {
+        if (!/^application\/json/i.test(req.headers['content-type'] || '')) return send(res, 415, { error: 'Content-Type must be application/json' });
+        let q;
+        try { q = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: 'invalid JSON' }); }
+        const imgs = Array.isArray(q?.images) ? [...new Set(q.images)] : [];
+        if (!imgs.length || imgs.length > 3 || !imgs.every((u) => typeof u === 'string' && isListingImage(u))) return send(res, 400, { error: 'images: 1 to 3 https://*.idealista.com image URLs required' });
+        if (!aiFn) return send(res, 503, { error: 'AI check not configured on the server (set SIGHTENGINE_USER and SIGHTENGINE_SECRET)', fatal: true });
+        const todo = imgs.filter((u) => cache.get('a:' + u) === undefined).length;
+        if (aiUsed() + aiReserved + todo > aiMonthlyLimit) return send(res, 429, { error: `monthly AI-check limit (${aiMonthlyLimit}) reached; raise SIGHTENGINE_MONTHLY_LIMIT`, fatal: true });
+        aiReserved += todo;
+        let results;
+        try {
+          results = await Promise.all(imgs.map(async (u) => {
+            const hit = cache.get('a:' + u);
+            if (hit !== undefined) { stats.hits++; return { url: u, score: hit }; }
+            try {
+              const { score } = await aiFn(u);
+              cache.set('ua:' + month(), aiUsed() + 1, 40 * DAY);
+              cache.set('a:' + u, score, aiTtl);
+              return { url: u, score };
+            } catch (e) { return { url: u, error: String(e.message).slice(0, 200), status: e.status }; }
+          }));
+        } finally { aiReserved -= todo; }
+        if (results.every((r) => r.error)) {
+          const bad = results.some((r) => r.status === 401 || r.status === 403);
+          return send(res, bad ? 502 : results[0].status || 502, { error: results[0].error, fatal: bad });
+        }
+        return send(res, 200, { provider: 'Sightengine', images: results.map(({ status, ...r }) => r) });
       }
 
       if (req.method === 'POST' && url.pathname === '/route') {
@@ -236,6 +274,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const server = createServer({
     router,
     accessToken: process.env.ACCESS_TOKEN || '',
+    sightengine: { user: process.env.SIGHTENGINE_USER || '', secret: process.env.SIGHTENGINE_SECRET || '' },
+    aiMonthlyLimit: Number(process.env.SIGHTENGINE_MONTHLY_LIMIT || 1500),
     googleKey: process.env.GOOGLE_API_KEY || '',
     googleEndpoint: process.env.GOOGLE_ENDPOINT || undefined, // tests only: point at a fake Google
     monthlyLimit: Number(process.env.GOOGLE_MONTHLY_LIMIT || 2000),

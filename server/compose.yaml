@@ -11,6 +11,9 @@ services:
       GOOGLE_MONTHLY_LIMIT: "${GOOGLE_MONTHLY_LIMIT:-2000}"   # hard cap on paid calls per month (cache hits are free)
       CACHE_FILE: /cache/cache.jsonl
       TILE_DIR: /cache/tiles
+      SIGHTENGINE_USER: "${SIGHTENGINE_USER:-}"             # optional: enables the AI-generated photo check
+      SIGHTENGINE_SECRET: "${SIGHTENGINE_SECRET:-}"
+      SIGHTENGINE_MONTHLY_LIMIT: "${SIGHTENGINE_MONTHLY_LIMIT:-1500}"   # hard cap on scanned photos per month
       ACCESS_TOKEN: "${ACCESS_TOKEN:-}"          # optional shared secret; clients send it as a bearer token
       ROUTER_MODULE: "${ROUTER_MODULE:-}"       # optional: path (inside the container) of a custom router, e.g. /routers/my-router.mjs
       GATEWAY_CONTACT: "${GATEWAY_CONTACT:-}"   # optional contact for Nominatim/OSM usage policies; leave empty to omit
