@@ -2,6 +2,7 @@ import { parseAddress, addressCandidates, nextArrival } from './lib/address.js';
 import { Throttle, withRetry } from './lib/throttle.js';
 import * as backend from './lib/backend.js';
 import { buildMapSvg } from './lib/map.js';
+import * as sightengine from './lib/sightengine.js';
 
 const DEFAULTS = {
   serverUrl: '', // empty = http://127.0.0.1:8085 (this machine); or any server speaking docs/backend-api.md
@@ -11,6 +12,9 @@ const DEFAULTS = {
   citySuffix: 'Madrid, España',
   pinFromMap: true, // read the listing's pin from idealista's /mapa page instead of geocoding its title
   debug: false,
+  sightengineUser: '', // optional: own Sightengine credentials = photo check straight from the browser (no server needed)
+  sightengineSecret: '',
+  sightengineLimit: 1500, // photos per month in this browser
 };
 const CACHE_TTL = 14 * 24 * 3600 * 1000;
 
@@ -91,6 +95,28 @@ async function mapFor(route) {
   return buildMapSvg(route, (z, x, y) => backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
 }
 
+// Photo check. With Sightengine credentials in the options the browser calls Sightengine itself; otherwise the
+// server's POST /ai-check does (credentials on the server, shared cache and cap). Same answer shape either way.
+async function aiCheck(images, s) {
+  if (!(s.sightengineUser && s.sightengineSecret)) return backend.aiCheck(images, s);
+  const month = new Date().toISOString().slice(0, 7);
+  const { usage = {} } = await browser.storage.local.get('usage');
+  usage.ai ||= {};
+  const left = s.sightengineLimit - (usage.ai[month] || 0);
+  if (left < images.length) throw Object.assign(new Error(`Monthly photo limit (${s.sightengineLimit}) reached in this browser; raise it in the options.`), { fatal: true });
+  const results = await Promise.all(images.map(async (url) => {
+    try { return { url, score: await sightengine.scoreImage(url, { user: s.sightengineUser, secret: s.sightengineSecret }) }; }
+    catch (e) { return { url, error: e.message, fatal: !!e.fatal }; }
+  }));
+  const ok = results.filter((r) => r.score !== undefined).length;
+  if (ok) { // only photos Sightengine actually scored count
+    const { usage: u2 = {} } = await browser.storage.local.get('usage');
+    u2.ai ||= {}; u2.ai[month] = (u2.ai[month] || 0) + ok;
+    await browser.storage.local.set({ usage: u2 });
+  } else throw Object.assign(new Error(results[0].error), { fatal: results.some((r) => r.fatal) });
+  return results.map(({ fatal, ...r }) => r);
+}
+
 browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
 
 browser.runtime.onMessage.addListener((msg) => {
@@ -98,7 +124,7 @@ browser.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'tile') return getSettings().then((st) => backend.tileDataUrl(st.serverUrl, msg.z, msg.x, msg.y, st.accessToken)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'map') return mapFor(msg.route).then((svg) => ({ svg })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'aicheck') {
-    return getSettings().then((st) => backend.aiCheck(msg.images, st)).then((images) => ({ images }))
+    return getSettings().then((st) => aiCheck(msg.images, st)).then((images) => ({ images }))
       .catch((e) => ({ error: e.message || String(e), fatal: !!e.fatal }));
   }
   if (msg?.type !== 'commute') return;

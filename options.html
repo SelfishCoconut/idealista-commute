@@ -33,6 +33,16 @@
 <label>Access token <small>(only if the server sets <code>ACCESS_TOKEN</code>; stored in this browser)</small>
   <input id="accessToken" type="password" autocomplete="off">
 </label>
+<fieldset>
+  <legend>AI photo check <small>(optional, pick one)</small></legend>
+  <p><small>Either set <code>SIGHTENGINE_USER</code> / <code>SIGHTENGINE_SECRET</code> on your server, or type your own
+  <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> credentials here and the browser will
+  call Sightengine directly (no server needed; the secret is stored in plain text in this browser profile, so use it only on a
+  machine you trust, and never share a key you want to keep private). Credentials here take priority.</small></p>
+  <label>Sightengine API user <input id="sightengineUser" autocomplete="off"></label>
+  <label>Sightengine API secret <input id="sightengineSecret" type="password" autocomplete="off"></label>
+  <label>Photos per month in this browser <input id="sightengineLimit" type="number" min="1" value="1500"></label>
+</fieldset>
 <button id="test" type="button">Test server</button> <span id="testResult"></span>
 
 <label><input id="pinFromMap" type="checkbox" style="width:auto"> Use the listing's pin from idealista's map page when available <small>(exact location, avoids street-name mix-ups; reads each listing's map page slowly, one at a time, and falls back to the address if idealista objects)</small></label>

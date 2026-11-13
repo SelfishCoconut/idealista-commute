@@ -1,6 +1,7 @@
 // Options page.
 import { normalizeServerUrl, DEFAULT_URL } from './lib/url.js';
 import { health } from './lib/backend.js';
+import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -11,11 +12,15 @@ async function load() {
   $('citySuffix').value = settings.citySuffix || 'Madrid, España';
   $('serverUrl').value = settings.serverUrl || '';
   $('accessToken').value = settings.accessToken || '';
+  $('sightengineUser').value = settings.sightengineUser || '';
+  $('sightengineSecret').value = settings.sightengineSecret || '';
+  $('sightengineLimit').value = settings.sightengineLimit || 1500;
   $('debug').checked = !!settings.debug;
   $('pinFromMap').checked = settings.pinFromMap !== false;
   const month = new Date().toISOString().slice(0, 7);
   $('usage').textContent = 'Route requests this month: ' +
-    (usage.routes?.[month] || 0) + ' (this browser; cached answers are free)';
+    (usage.routes?.[month] || 0) + ' (this browser; cached answers are free)' +
+    (usage.ai?.[month] ? `; photos scanned directly: ${usage.ai[month]}` : '');
 }
 
 // Firefox only shows the permission prompt if this is called straight from the click handler,
@@ -46,8 +51,15 @@ $('test').addEventListener('click', async () => {
 
 $('save').addEventListener('click', async () => {
   const pending = $('serverUrl').value.trim() ? grantServer($('serverUrl').value) : Promise.resolve('');
+  // Same click, same tick: the permission prompt for calling Sightengine directly (only when credentials are typed).
+  const sightUser = $('sightengineUser').value.trim(), sightSecret = $('sightengineSecret').value.trim();
+  const sightPending = sightUser && sightSecret ? browser.permissions.request({ origins: [SIGHT_ORIGIN] }) : Promise.resolve(true);
   const { settings = {} } = await browser.storage.local.get('settings');
   const serverUrl = await pending;
+  if (!(await sightPending)) {
+    $('status').textContent = 'Not saved: permission to reach api.sightengine.com was refused (clear the Sightengine fields to use the server instead).';
+    return;
+  }
   if (serverUrl === null) {
     $('status').textContent = 'Not saved: the server URL is invalid, or the permission to reach it was refused.';
     return;
@@ -56,6 +68,9 @@ $('save').addEventListener('click', async () => {
     ...settings,
     serverUrl: serverUrl === DEFAULT_URL ? '' : serverUrl,
     accessToken: $('accessToken').value.trim(),
+    sightengineUser: sightUser,
+    sightengineSecret: sightSecret,
+    sightengineLimit: Math.max(1, Number($('sightengineLimit').value) || 1500),
     workAddress: $('workAddress').value.trim(),
     arriveBy: $('arriveBy').value || '09:00',
     citySuffix: $('citySuffix').value.trim(),

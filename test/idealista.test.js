@@ -46,3 +46,18 @@ test('photoUrls keeps one (largest) URL per listing photo and ignores non-photo 
   assert.deepEqual(pickRandom([1, 2], 3).sort(), [1, 2]); // fewer photos than asked
   assert.deepEqual(pickRandom([], 3), []);
 });
+
+test('sightengine.scoreImage: POST body carries the credentials, errors classified', async () => {
+  const { scoreImage } = await import('../lib/sightengine.js');
+  const creds = { user: 'U', secret: 'S' };
+  let seen;
+  const ok = async (u, o) => { seen = { u: String(u), o }; return new Response(JSON.stringify({ status: 'success', type: { ai_generated: 0.42 } })); };
+  assert.equal(await scoreImage('https://img4.idealista.com/a.jpg', creds, ok), 0.42);
+  assert.ok(!seen.u.includes('S') || !/secret/i.test(seen.u)); // nothing secret in the URL
+  assert.equal(seen.o.body.get('api_secret'), 'S');
+  assert.equal(seen.o.body.get('models'), 'genai');
+  const bad = async () => new Response(JSON.stringify({ status: 'failure', error: { type: 'credentials_error', message: 'nope' } }), { status: 401 });
+  await assert.rejects(() => scoreImage('x', creds, bad), (e) => e.fatal === true && e.message === 'nope');
+  const down = async () => new Response('{}', { status: 500 });
+  await assert.rejects(() => scoreImage('x', creds, down), (e) => !e.fatal && e.retryable === true);
+});

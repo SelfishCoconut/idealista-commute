@@ -25,7 +25,10 @@ Firefox extension · self-hostable backend · your API key never leaves your ser
   the title, which avoids street-name mix-ups. If idealista objects it falls back to the address.
 - **Fake-photo check**: on a listing page, one click scans up to **3 random photos** with
   [Sightengine](https://sightengine.com)'s AI-image detector and shows the % chance each one is AI-generated, so you
-  can spot a fake advertisement. Optional: needs a free Sightengine account (see [Server](#1-run-the-server)).
+  can spot a fake advertisement. Optional, needs a free Sightengine account, and works two ways: put the credentials in
+  `server/.env` (`SIGHTENGINE_USER`/`SIGHTENGINE_SECRET`: key stays on the server, shared cache and cap), or type them into
+  the extension options (the browser calls Sightengine directly, no server needed; the secret is stored in plain text in
+  your browser profile). Credentials in the options win. Every scanned photo is cached, so it is never scanned twice.
 - **Cheap by design**: every answer is cached, in your browser and on your server, so the same trip is never paid
   for twice, and the server enforces a hard monthly cap on paid calls.
 - **Your backend, your rules**: the extension talks to *one* server through a [small HTTP contract](docs/backend-api.md).
