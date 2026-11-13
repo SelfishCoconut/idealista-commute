@@ -2,7 +2,7 @@
 import { normalizeServerUrl, DEFAULT_URL } from './lib/url.js';
 import { health } from './lib/backend.js';
 import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
-import { vaultState, unlock, saveSecrets, SECRET_FIELDS } from './lib/vault.js';
+import { vaultState, unlock, lock, saveSecrets, SECRET_FIELDS } from './lib/vault.js';
 import { t, applyI18n } from './lib/i18n.js';
 import { ORIGINS as DIRECT_ORIGINS, validTileUrl } from './lib/direct.js';
 
@@ -51,6 +51,7 @@ async function load() {
   legacy = !vault.exists && SECRET_FIELDS.some((f) => settings[f]);
   const sec = vault.exists ? vault.secrets : settings;
   for (const f of SECRET_FIELDS) { $(f).value = sec[f] || ''; $(f).disabled = locked; }
+  $('lockNow').hidden = !vault.exists;
   $('vaultHint').textContent = locked ? t('vaultLocked')
     : vault.exists ? t('vaultEncrypted')
     : t('vaultNew');
@@ -181,6 +182,8 @@ $('gate').addEventListener('submit', async (e) => {
   try { await unlock($('gatePass').value); $('gatePass').value = ''; await load(); }
   catch (err) { $('gateErr').textContent = err.message; }
 });
+
+$('lockNow').addEventListener('click', async () => { await lock(); await load(); }); // back to the passphrase gate
 
 // Unlocking or locking from the toolbar popup or an idealista tab updates this page too.
 browser.storage.onChanged.addListener((_c, area) => { if (area === 'session') load(); });
