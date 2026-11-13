@@ -52,7 +52,9 @@
 /* The card's own bottom row (Contactar / Ver teléfono) is absolutely positioned and relies on a fixed height to
    stay clear of the text above it. With our row inside, the text column gets taller, so keep that row's space. */
 .icm-host.icm-host { height: auto; max-height: none; overflow: visible; }
-.icm-host.icm-host:not(article) { padding-bottom: 48px; box-sizing: border-box; }
+/* The card's own footer (contact button, icons) is pinned to the card's bottom edge. With the card growing to fit our row, that
+   footer lands on the last lines of the text, so the card keeps room for it. Not the title container: the text isn't inside it. */
+article.icm-host.icm-host { padding-bottom: 48px; box-sizing: border-box; }
 
 .icm-detail { margin: 12px 0 16px; }
 .icm-detail .icm-badge.icm-badge { margin-top: 0; }

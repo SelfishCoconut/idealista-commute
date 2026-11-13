@@ -7,24 +7,22 @@ header{background:#fff;border-bottom:1px solid #dde1e4;padding:14px 32px;font-we
 main{max-width:880px;margin:24px auto;padding:0 24px}
 .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.bar h1{font-size:20px;margin:0}
 select{font:inherit;padding:6px 10px;border:1px solid #c9ced2;border-radius:8px;background:#fff}
-article.item{display:flex;gap:20px;background:#fff;border:1px solid #dde1e4;border-radius:12px;padding:16px;margin-bottom:16px}
+article.item{position:relative;display:flex;gap:20px;background:#fff;border:1px solid #dde1e4;border-radius:12px;padding:16px;margin-bottom:16px}
 .pic{flex:none;width:260px;height:170px;border-radius:8px;background:linear-gradient(135deg,#d7e3ee,#c8d6c3)}
-.item-info-container{flex:1;min-width:0}.item-link{font-size:18px;font-weight:600;color:#1d2125;text-decoration:none}
+.col{flex:1;min-width:0}.item-link{font-size:18px;font-weight:600;color:#1d2125;text-decoration:none}
+.desc{margin-top:8px;color:#4a5057;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.foot{position:absolute;left:291px;right:16px;bottom:14px;display:flex;justify-content:space-between;color:#1d4ed8;font-weight:600}
 .price{font-size:20px;font-weight:700;margin:6px 0}.det{color:#5a6169}
 </style></head><body>
 <header>Portal inmobiliario · demo</header>
 <main><div class="bar"><h1>Pisos en alquiler en Madrid</h1>
 <select aria-label="Ordenar"><option>Relevancia</option><option>Más recientes</option><option>Más baratos</option></select></div>
-<article class="item" data-element-id="105000001"><div class="pic"></div><div class="item-info-container">
-<a class="item-link" href="/inmueble/105000001/" title="Piso en calle de Alcalá, Retiro, Madrid">Piso en calle de Alcalá, Retiro, Madrid</a>
-<div class="price">1.250 €/mes</div><div class="det">3 hab. · 85 m² · Planta 4ª exterior con ascensor</div></div></article>
-<article class="item" data-element-id="105000002"><div class="pic"></div><div class="item-info-container">
-<a class="item-link" href="/inmueble/105000002/" title="Piso en calle de Embajadores, Arganzuela, Madrid">Piso en calle de Embajadores, Arganzuela, Madrid</a>
-<div class="price">980 €/mes</div><div class="det">2 hab. · 62 m² · Planta 2ª exterior sin ascensor</div></div></article>
-<article class="item" data-element-id="105000003"><div class="pic"></div><div class="item-info-container">
-<a class="item-link" href="/inmueble/105000003/" title="Piso en calle de Bravo Murillo, Tetuán, Madrid">Piso en calle de Bravo Murillo, Tetuán, Madrid</a>
-<div class="price">1.100 €/mes</div><div class="det">2 hab. · 70 m² · Planta 5ª exterior con ascensor</div></div></article>
-<article class="item" data-element-id="105000004"><div class="pic"></div><div class="item-info-container">
-<a class="item-link" href="/inmueble/105000004/" title="Piso en calle de Segovia, Centro, Madrid">Piso en calle de Segovia, Centro, Madrid</a>
-<div class="price">1.490 €/mes</div><div class="det">3 hab. · 92 m² · Planta 3ª interior con ascensor</div></div></article>
+<article class="item" data-element-id="105000001"><div class="pic"></div><div class="col"><div class="item-info-container"><a class="item-link" href="/inmueble/105000001/" title="Piso en calle de Alcalá, Retiro, Madrid">Piso en calle de Alcalá, Retiro, Madrid</a></div>
+<div class="price">1.250 €/mes</div><div class="det">3 hab. · 85 m² · Planta 4ª exterior con ascensor<p class="desc">Se alquila habitación amplia y luminosa en piso compartido. El piso es totalmente exterior y todas las habitaciones están amuebladas, con ventana al exterior. Ubicado a 2 minutos del metro, cerca de la universidad y de todos los servicios.</p></div></div><div class="foot"><span>Contactar</span><span>♡</span></div></article>
+<article class="item" data-element-id="105000002"><div class="pic"></div><div class="col"><div class="item-info-container"><a class="item-link" href="/inmueble/105000002/" title="Piso en calle de Embajadores, Arganzuela, Madrid">Piso en calle de Embajadores, Arganzuela, Madrid</a></div>
+<div class="price">980 €/mes</div><div class="det">2 hab. · 62 m² · Planta 2ª exterior sin ascensor<p class="desc">Se alquila habitación amplia y luminosa en piso compartido. El piso es totalmente exterior y todas las habitaciones están amuebladas, con ventana al exterior. Ubicado a 2 minutos del metro, cerca de la universidad y de todos los servicios.</p></div></div><div class="foot"><span>Contactar</span><span>♡</span></div></article>
+<article class="item" data-element-id="105000003"><div class="pic"></div><div class="col"><div class="item-info-container"><a class="item-link" href="/inmueble/105000003/" title="Piso en calle de Bravo Murillo, Tetuán, Madrid">Piso en calle de Bravo Murillo, Tetuán, Madrid</a></div>
+<div class="price">1.100 €/mes</div><div class="det">2 hab. · 70 m² · Planta 5ª exterior con ascensor<p class="desc">Se alquila habitación amplia y luminosa en piso compartido. El piso es totalmente exterior y todas las habitaciones están amuebladas, con ventana al exterior. Ubicado a 2 minutos del metro, cerca de la universidad y de todos los servicios.</p></div></div><div class="foot"><span>Contactar</span><span>♡</span></div></article>
+<article class="item" data-element-id="105000004"><div class="pic"></div><div class="col"><div class="item-info-container"><a class="item-link" href="/inmueble/105000004/" title="Piso en calle de Segovia, Centro, Madrid">Piso en calle de Segovia, Centro, Madrid</a></div>
+<div class="price">1.490 €/mes</div><div class="det">3 hab. · 92 m² · Planta 3ª interior con ascensor<p class="desc">Se alquila habitación amplia y luminosa en piso compartido. El piso es totalmente exterior y todas las habitaciones están amuebladas, con ventana al exterior. Ubicado a 2 minutos del metro, cerca de la universidad y de todos los servicios.</p></div></div><div class="foot"><span>Contactar</span><span>♡</span></div></article>
 <script src="/content.js"></script></main></body></html>
