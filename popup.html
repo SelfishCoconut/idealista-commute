@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="popup.css">
 </head>
 <body class="popup">
-  <h1 data-i18n="actionTitle"></h1>
+  <header><h1 data-i18n="actionTitle"></h1><a href="#" id="options" data-i18n="openOptions"></a></header>
   <p class="state" id="state" role="status"></p>
   <form id="form" hidden>
     <label class="field"><span data-i18n="passphrase"></span><input id="passphrase" type="password" autocomplete="off"></label>
@@ -30,7 +30,6 @@
     <button type="submit" class="primary" id="save" data-i18n="popSave"></button>
   </form>
   <p class="err" id="err" role="alert"></p>
-  <a href="#" id="options" data-i18n="openOptions"></a>
   <script type="module" src="popup.js"></script>
 </body>
 </html>
