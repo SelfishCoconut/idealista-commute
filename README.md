@@ -161,7 +161,8 @@ Implement the four endpoints in [`docs/backend-api.md`](docs/backend-api.md) in 
   yourself) on idealista pages **you** open. Nothing is sent anywhere except your server.
 - Your **work address** and each listing's **location text** go to your server, which geocodes them with the public
   OpenStreetMap services (Nominatim, then Photon). **Rounded coordinates** go to Google for routing. Tiles come from
-  OpenStreetMap through your server.
+  OpenStreetMap through your server (or, in *This browser* mode, straight from OpenStreetMap with a `User-Agent` that
+  identifies this app, as their tile and Nominatim policies require; the tile URL is configurable in the options).
 - No analytics, no accounts. Settings and caches stay in your browser's extension storage.
 
 ## Repository layout

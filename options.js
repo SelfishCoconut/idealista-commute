@@ -2,7 +2,7 @@
 import { normalizeServerUrl, DEFAULT_URL } from './lib/url.js';
 import { health } from './lib/backend.js';
 import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
-import { ORIGINS as DIRECT_ORIGINS } from './lib/direct.js';
+import { ORIGINS as DIRECT_ORIGINS, validTileUrl } from './lib/direct.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -50,6 +50,7 @@ async function load() {
   document.querySelector(`input[name=aiSource][value=${source}]`).checked = true;
   $('googleKey').value = settings.googleKey || '';
   $('googleLimit').value = settings.googleLimit || 2000;
+  $('tileUrl').value = settings.tileUrl || '';
   document.querySelector(`input[name=backend][value=${settings.backend === 'browser' ? 'browser' : 'server'}]`).checked = true;
   showBackend(); showSource(); showPreview();
   const month = new Date().toISOString().slice(0, 7);
@@ -95,10 +96,15 @@ $('save').addEventListener('click', async () => {
     $('status').textContent = 'Not saved: enter your Sightengine API user and secret, or choose "My server".';
     return;
   }
+  const tileUrl = $('tileUrl').value.trim();
+  if (backend === 'browser' && tileUrl && !validTileUrl(tileUrl)) {
+    $('status').textContent = 'Not saved: the map tiles URL must be https and contain {z}, {x} and {y}.';
+    return;
+  }
   const needServer = backend === 'server' || aiSource === 'server';
   const pending = needServer && $('serverUrl').value.trim() ? grantServer($('serverUrl').value) : Promise.resolve('');
   // Same click, same tick: one permission prompt for every service this browser will call itself.
-  const origins = [...(backend === 'browser' ? DIRECT_ORIGINS : []), ...(aiSource === 'browser' ? [SIGHT_ORIGIN] : [])];
+  const origins = [...(backend === 'browser' ? [...DIRECT_ORIGINS, ...(tileUrl ? [new URL(tileUrl.replace(/\{[zxy]\}/g, '0')).origin + '/*'] : [])] : []), ...(aiSource === 'browser' ? [SIGHT_ORIGIN] : [])];
   const sightPending = origins.length ? browser.permissions.request({ origins }) : Promise.resolve(true);
   const { settings = {} } = await browser.storage.local.get('settings');
   const serverUrl = await pending;
@@ -116,6 +122,7 @@ $('save').addEventListener('click', async () => {
     accessToken: $('accessToken').value.trim(),
     backend,
     googleKey,
+    tileUrl,
     googleLimit: Math.max(1, Number($('googleLimit').value) || 2000),
     aiSource,
     sightengineUser: sightUser,

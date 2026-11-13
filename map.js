@@ -21,7 +21,7 @@ function draw(route, base) {
       return img;
     },
   });
-  new Tiles('', { maxZoom: 17, attribution: '© OpenStreetMap contributors' }).addTo(map);
+  new Tiles('', { maxZoom: 17, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Report a map issue</a>' }).addTo(map);
 
   const all = [lat([route.home.lat, route.home.lng]), lat([route.work.lat, route.work.lng])];
   const steps = route.steps || [];

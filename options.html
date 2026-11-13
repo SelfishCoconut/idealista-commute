@@ -63,6 +63,8 @@
         <label class="field"><span>Google Routes API key</span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
         <label class="field"><span>Routes per month</span><input id="googleLimit" type="number" min="1" value="2000"></label>
       </div>
+      <label class="field"><span>Map tiles URL <small>(optional)</small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
+        <p class="hint">Leave empty for OpenStreetMap, or use another provider's template with <code>{z}</code> <code>{x}</code> <code>{y}</code>. The attribution shown stays OpenStreetMap's: add your provider's if it requires one</p></label>
       <div class="note">No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored unencrypted in this browser profile, answers are cached here only, and the monthly limit is counted per browser.</div>
     </div>
   </section>

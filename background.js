@@ -11,6 +11,7 @@ const DEFAULTS = {
   backend: 'server', // commute: 'server' (above) or 'browser' (this browser calls Google/OpenStreetMap itself with the key below)
   googleKey: '', // own Google Routes API key, used only when backend is 'browser'
   googleLimit: 2000, // routes per month in this browser (browser mode)
+  tileUrl: '', // browser mode: tile URL template with {z}/{x}/{y}; empty = OpenStreetMap's
   workAddress: '',
   arriveBy: '09:00',
   citySuffix: 'Madrid, España',
@@ -105,7 +106,7 @@ async function commute(title, pin) {
 
 // Map tiles come through the server (shared disk cache, one identified client) and are handed to the page
 // as data: URLs, so the idealista page never contacts a tile server and its CSP is not an obstacle.
-const tileFor = (s, z, x, y) => (s.backend === 'browser' ? direct.tileDataUrl(z, x, y) : backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
+const tileFor = (s, z, x, y) => (s.backend === 'browser' ? direct.tileDataUrl(z, x, y, s.tileUrl) : backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
 async function mapFor(route) {
   const s = await getSettings();
   return buildMapSvg(route, (z, x, y) => tileFor(s, z, x, y));
@@ -132,6 +133,17 @@ async function aiCheck(images, s) {
     await browser.storage.local.set({ usage: u2 });
   } else throw Object.assign(new Error(results[0].error), { fatal: results.some((r) => r.fatal) });
   return results.map(({ fatal, ...r }) => r);
+}
+
+// Identify the app to OpenStreetMap (their tile and Nominatim policies require it; an extension's fetch() cannot set a
+// User-Agent itself). Only requests made by this extension's own pages are touched, never the user's browsing.
+if (browser.webRequest?.onBeforeSendHeaders) {
+  const ua = direct.appUserAgent(browser.runtime.getManifest().version);
+  const own = browser.runtime.getURL('');
+  browser.webRequest.onBeforeSendHeaders.addListener((d) => {
+    if (!((d.originUrl || d.documentUrl || '').startsWith(own) || (d.tabId === -1 && !d.originUrl && !d.documentUrl))) return {};
+    return { requestHeaders: d.requestHeaders.filter((h) => h.name.toLowerCase() !== 'user-agent').concat({ name: 'User-Agent', value: ua }) };
+  }, { urls: direct.OSM_URLS }, ['blocking', 'requestHeaders']);
 }
 
 browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
