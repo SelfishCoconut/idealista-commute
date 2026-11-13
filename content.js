@@ -272,7 +272,7 @@
   }
 
   // ---- sort by commute time ----------------------------------------------------------------------
-  // Reorders the cards of the CURRENT page (idealista paginates server-side, so other pages are not included).
+  // Reorders the cards of the current page, plus the other result pages when that option is on (see loadPages).
   let sortOn = false, original = null, resortTimer = null;
   const cards = () => [...document.querySelectorAll(CARD)];
   const minutes = (c) => (c.dataset.icmMin ? Number(c.dataset.icmMin) : Infinity);
@@ -289,18 +289,63 @@
     if (sorted.every((c, i) => c === cs[i])) return;
     placeInOrder(sorted);
   }
+  // Optional (options page): the other result pages are fetched (same-origin, slowly, like opening them yourself) and their
+  // listings are added under this page while the sort is on, so they take part in it. Removed again when the sort is turned off.
+  let extras = [], extrasDone = false, extrasLoading = null;
+  const lastCard = () => cards().filter((c) => !extras.includes(c)).pop();
+  function attachExtras() {
+    let anchor = lastCard();
+    if (anchor) for (const n of extras) if (!n.isConnected) { anchor.after(n); anchor = n; }
+  }
+  async function loadPages(setStatus) {
+    const { settings = {} } = await browser.storage.local.get('settings');
+    if (!settings.sortAllPages) return;
+    if (extrasDone) { attachExtras(); return; }
+    idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
+    const build = idl.pageUrlBuilder([...document.querySelectorAll('.pagination a[href*="pagina-"]')].map((a) => a.getAttribute('href')), location.href);
+    if (!build) { extrasDone = true; return; }
+    const cur = idl.currentPage(location.pathname), max = Math.min(20, Math.max(2, Number(settings.sortPages) || 5));
+    const known = new Set(cards().map(idOf));
+    let anchor = lastCard(), blocked = false;
+    for (let n = 1; n <= max && !blocked; n++) {
+      if (n === cur) continue;
+      setStatus(t('loadingPage', n));
+      await sleep(1200 + Math.random() * 1000);
+      let html = '';
+      try {
+        const res = await fetch(build(n), { credentials: 'same-origin' });
+        html = await res.text();
+        if (idl.looksBlocked(res.status, html)) { blocked = true; break; }
+        if (!res.ok) continue;
+      } catch { continue; }
+      const fresh = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll(CARD)];
+      if (!fresh.length && n > cur) break; // past the last page
+      for (const a of fresh) {
+        const id = idOf(a);
+        if (!id || known.has(id)) continue;
+        known.add(id);
+        const node = document.importNode(a, true);
+        node.dataset.icmExtra = n;
+        extras.push(node); anchor.after(node); anchor = node;
+      }
+    }
+    extrasDone = !blocked;
+    if (blocked) setStatus(t('pagesBlocked'));
+  }
   async function setSort(on, setStatus = () => {}) {
     sortOn = on;
     if (!on) {
+      for (const n of extras) n.remove();
       if (original) placeInOrder(original.filter((c) => c.isConnected).concat(cards().filter((c) => !original.includes(c))));
       original = null;
       setStatus('');
       return;
     }
+    sorting = true;
+    try { await (extrasLoading ||= loadPages(setStatus).finally(() => { extrasLoading = null; })); } catch (e) { console.error('[idealista-commute] pages', e); }
     // Only listings without a result yet need work; those already computed (or cached) are just sorted.
     const todo = cards().filter((c) => !c.dataset.icmMin && !jobs.has(c));
     let done = 0;
-    sorting = true;
     if (todo.length) setStatus(t('calcProgress', 0, todo.length));
     await Promise.all(todo.map((c) => handle(c).then(() => setStatus(t('calcProgress', ++done, todo.length)))));
     await Promise.all(cards().map((c) => jobs.get(c)).filter(Boolean)); // any still in flight from scrolling

@@ -170,6 +170,26 @@
   "sortedStatus": {
     "message": "Sorted by commute time"
   },
+  "loadingPage": {
+    "message": "Loading results page $N1$…",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "pagesBlocked": {
+    "message": "idealista asked for a check: sorting the pages loaded so far"
+  },
+  "sortPagesTitle": {
+    "message": "Include other pages when sorting"
+  },
+  "sortPagesHint": {
+    "message": "When sorting by commute, also loads the other result pages (slowly, one at a time) and merges them into the list. They are removed when the sort is turned off"
+  },
+  "sortPagesCount": {
+    "message": "Pages at most"
+  },
   "calcProgress": {
     "message": "Calculating $N1$/$N2$…",
     "placeholders": {

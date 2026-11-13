@@ -170,6 +170,26 @@
   "sortedStatus": {
     "message": "Ordenado por tiempo al trabajo"
   },
+  "loadingPage": {
+    "message": "Cargando la página $N1$ de resultados…",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "pagesBlocked": {
+    "message": "idealista pidió una verificación: se ordenan las páginas ya cargadas"
+  },
+  "sortPagesTitle": {
+    "message": "Incluir otras páginas al ordenar"
+  },
+  "sortPagesHint": {
+    "message": "Al ordenar por tiempo, carga también las siguientes páginas de resultados (despacio, de una en una) y las mezcla en la lista. Se quitan al desactivar el orden"
+  },
+  "sortPagesCount": {
+    "message": "Páginas como máximo"
+  },
   "calcProgress": {
     "message": "Calculando $N1$/$N2$…",
     "placeholders": {

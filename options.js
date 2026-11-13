@@ -61,6 +61,8 @@ async function load() {
   $('accessToken').value = settings.accessToken || '';
   $('sightengineLimit').value = settings.sightengineLimit || 1500;
   $('pinFromMap').checked = settings.pinFromMap !== false;
+  $('sortAllPages').checked = !!settings.sortAllPages;
+  $('sortPages').value = settings.sortPages || 5;
   // Saved choice; before it existed, a saved key meant "browser".
   const source = settings.aiSource || (settings.sightengineUser && settings.sightengineSecret ? 'browser' : 'server');
   document.querySelector(`input[name=aiSource][value=${source}]`).checked = true;
@@ -152,6 +154,8 @@ $('save').addEventListener('click', async () => {
     arriveBy: $('arriveBy').value || '09:00',
     citySuffix: $('citySuffix').value.trim(),
     pinFromMap: $('pinFromMap').checked,
+    sortAllPages: $('sortAllPages').checked,
+    sortPages: Math.min(20, Math.max(2, Number($('sortPages').value) || 5)),
   };
   for (const f of SECRET_FIELDS) delete next[f]; // never into settings; they go to the encrypted vault
   await browser.storage.local.set({ settings: next });

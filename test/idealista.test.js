@@ -80,3 +80,13 @@ test('photoUrls falls back to any idealista image when the id.pro. naming is abs
     <img src="https://img3.idealista.com/blur/WEB_LISTING-M/0/abc/def/12345.jpg">`;
   assert.deepEqual(photoUrls(html), ['https://img3.idealista.com/blur/WEB_DETAIL/0/abc/def/12345.jpg']);
 });
+
+import { pageUrlBuilder, currentPage } from '../lib/idealista.js';
+test('page URLs follow idealista\'s pagina-N.htm scheme and keep the query', () => {
+  const b = pageUrlBuilder(['/x', '/multi/alquiler-viviendas/ay0,ay1/con-precio-hasta_900/pagina-2.htm?ordenado-por=precios-asc'], 'https://www.idealista.com/multi/a/');
+  assert.equal(b(1), 'https://www.idealista.com/multi/alquiler-viviendas/ay0,ay1/con-precio-hasta_900/?ordenado-por=precios-asc');
+  assert.equal(b(3), 'https://www.idealista.com/multi/alquiler-viviendas/ay0,ay1/con-precio-hasta_900/pagina-3.htm?ordenado-por=precios-asc');
+  assert.equal(pageUrlBuilder(['/nada'], 'https://www.idealista.com/'), null);
+  assert.equal(currentPage('/a/pagina-4.htm'), 4);
+  assert.equal(currentPage('/a/'), 1);
+});
