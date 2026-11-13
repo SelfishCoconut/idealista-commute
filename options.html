@@ -8,10 +8,12 @@
 </head>
 <body>
 <main>
-  <h1 data-i18n="actionTitle"></h1>
-  <p class="sub" data-i18n="optSub"></p>
+  <header class="top">
+    <img src="icons/icon-48.png" alt="" width="40" height="40">
+    <div><h1 data-i18n="actionTitle"></h1><p class="sub" data-i18n="optSub"></p></div>
+  </header>
 
-  <form id="gate" hidden>
+  <form id="gate" class="card" hidden>
     <h2 data-i18n="optLockedTitle"></h2>
     <p class="hint" data-i18n="optLockedHint"></p>
     <label class="field"><span data-i18n="passphrase"></span><input id="gatePass" type="password" autocomplete="off"></label>
@@ -30,87 +32,99 @@
 
   <section>
     <h2 data-i18n="secCommute"></h2>
-    <label class="field"><span data-i18n="workAddress"></span>
-      <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid" autocomplete="off">
-    </label>
-    <div class="grid">
-      <label class="field"><span data-i18n="arriveBy"></span>
-        <input id="arriveBy" type="time" value="09:00">
-        <p class="hint" data-i18n="arriveByHint"></p>
+    <div class="card">
+      <label class="field"><span data-i18n="workAddress"></span>
+        <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid" autocomplete="off">
       </label>
-      <label class="field"><span data-i18n="city"></span>
-        <input id="citySuffix" placeholder="Madrid, España" autocomplete="off">
-        <p class="hint" data-i18n="cityHint"></p>
+      <div class="grid">
+        <label class="field"><span data-i18n="arriveBy"></span>
+          <input id="arriveBy" type="time" value="09:00">
+          <p class="hint" data-i18n="arriveByHint"></p>
+        </label>
+        <label class="field"><span data-i18n="city"></span>
+          <input id="citySuffix" placeholder="Madrid, España" autocomplete="off">
+          <p class="hint" data-i18n="cityHint"></p>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <label class="switch"><input id="pinFromMap" type="checkbox" role="switch">
+        <span><b data-i18n="pinTitle"></b><p class="hint" data-i18n="pinHint"></p></span>
+      </label>
+      <div class="divider"></div>
+      <label class="switch"><input id="sortAllPages" type="checkbox" role="switch">
+        <span><b data-i18n="sortPagesTitle"></b><p class="hint" data-i18n="sortPagesHint"></p></span>
+      </label>
+      <label class="field nested" id="sortPagesRow"><span data-i18n="sortPagesCount"></span>
+        <input id="sortPages" type="number" min="2" max="20" value="5">
       </label>
     </div>
-    <label class="switch"><input id="pinFromMap" type="checkbox">
-      <span><b data-i18n="pinTitle"></b><p class="hint" data-i18n="pinHint"></p></span>
-    </label>
-    <label class="switch"><input id="sortAllPages" type="checkbox">
-      <span><b data-i18n="sortPagesTitle"></b><p class="hint" data-i18n="sortPagesHint"></p></span>
-    </label>
-    <label class="field"><span data-i18n="sortPagesCount"></span>
-      <input id="sortPages" type="number" min="2" max="20" value="5">
-    </label>
   </section>
 
   <section>
     <h2 data-i18n="secWhere"></h2>
-    <div class="seg" role="radiogroup" data-i18n-aria-label="backendAria">
-      <label class="opt"><input type="radio" name="backend" value="server" checked><span data-i18n="optServer"></span></label>
-      <label class="opt"><input type="radio" name="backend" value="browser"><span data-i18n="optBrowser"></span></label>
-    </div>
-    <div class="panel" id="serverPanel">
-    <p class="hint" id="serverWhy" data-i18n="serverWhy" hidden style="margin:16px 0 0"></p>
-    <label class="field"><span data-i18n="serverUrl"></span>
-      <input id="serverUrl" class="mono" placeholder="http://127.0.0.1:8085" autocomplete="off" spellcheck="false">
-      <p class="hint" data-i18n="serverUrlHint"></p>
-    </label>
-    <label class="field"><span data-i18n="accessToken"></span>
-      <input id="accessToken" class="mono" type="password" autocomplete="off">
-      <p class="hint" data-i18n="accessTokenHint"></p>
-    </label>
-    <div class="test"><button id="test" type="button" class="btn" data-i18n="testServer"></button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
-    </div>
-    <div class="panel" id="browserPanel" hidden>
-      <div class="grid">
-        <label class="field"><span data-i18n="googleKey"></span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
-        <label class="field"><span data-i18n="routesMonth"></span><input id="googleLimit" type="number" min="1" value="2000"></label>
+    <div class="card">
+      <div class="seg" role="radiogroup" data-i18n-aria-label="backendAria">
+        <label class="opt"><input type="radio" name="backend" value="server" checked><span data-i18n="optServer"></span></label>
+        <label class="opt"><input type="radio" name="backend" value="browser"><span data-i18n="optBrowser"></span></label>
       </div>
-      <label class="field"><span><span data-i18n="tileUrl"></span> <small data-i18n="optional"></small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
-        <p class="hint" data-i18n="tileUrlHint"></p></label>
-      <div class="note" data-i18n="browserNote"></div>
+      <div class="panel" id="serverPanel">
+        <p class="hint" id="serverWhy" data-i18n="serverWhy" hidden></p>
+        <label class="field"><span data-i18n="serverUrl"></span>
+          <input id="serverUrl" class="mono" placeholder="http://127.0.0.1:8085" autocomplete="off" spellcheck="false">
+          <p class="hint" data-i18n="serverUrlHint"></p>
+        </label>
+        <label class="field"><span data-i18n="accessToken"></span>
+          <input id="accessToken" class="mono" type="password" autocomplete="off">
+          <p class="hint" data-i18n="accessTokenHint"></p>
+        </label>
+        <div class="test"><button id="test" type="button" class="btn" data-i18n="testServer"></button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
+      </div>
+      <div class="panel" id="browserPanel" hidden>
+        <div class="grid">
+          <label class="field"><span data-i18n="googleKey"></span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
+          <label class="field"><span data-i18n="routesMonth"></span><input id="googleLimit" type="number" min="1" value="2000"></label>
+        </div>
+        <label class="field"><span><span data-i18n="tileUrl"></span> <small data-i18n="optional"></small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
+          <p class="hint" data-i18n="tileUrlHint"></p></label>
+        <div class="note" data-i18n="browserNote"></div>
+      </div>
     </div>
   </section>
 
   <section>
     <h2 data-i18n="secPhoto"></h2>
-    <div class="seg" role="radiogroup" data-i18n-aria-label="photoAria">
-      <label class="opt"><input type="radio" name="aiSource" value="server" checked><span data-i18n="optServer"></span></label>
-      <label class="opt"><input type="radio" name="aiSource" value="browser"><span data-i18n="optMyKey"></span></label>
-    </div>
-    <p class="hint" id="aiServerHint" data-i18n="aiServerHint" style="margin-top:12px"></p>
-    <div class="panel" id="aiKeyPanel" hidden>
-      <div class="grid">
-        <label class="field"><span data-i18n="apiUser"></span><input id="sightengineUser" class="mono" autocomplete="off" spellcheck="false"></label>
-        <label class="field"><span data-i18n="apiSecret"></span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
+    <div class="card">
+      <div class="seg" role="radiogroup" data-i18n-aria-label="photoAria">
+        <label class="opt"><input type="radio" name="aiSource" value="server" checked><span data-i18n="optServer"></span></label>
+        <label class="opt"><input type="radio" name="aiSource" value="browser"><span data-i18n="optMyKey"></span></label>
       </div>
-      <label class="field"><span data-i18n="photosMonth"></span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
-      <div class="note" data-i18n="sightNote"><a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a></div>
+      <p class="hint panel" id="aiServerHint" data-i18n="aiServerHint"></p>
+      <div class="panel" id="aiKeyPanel" hidden>
+        <div class="grid">
+          <label class="field"><span data-i18n="apiUser"></span><input id="sightengineUser" class="mono" autocomplete="off" spellcheck="false"></label>
+          <label class="field"><span data-i18n="apiSecret"></span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
+        </div>
+        <label class="field"><span data-i18n="photosMonth"></span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
+        <div class="note" data-i18n="sightNote"><a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a></div>
+      </div>
     </div>
   </section>
 
   <section id="vaultSection">
     <h2 data-i18n="secVault"></h2>
-    <label class="field"><span data-i18n="passphrase"></span><input id="passphrase" type="password" autocomplete="off"></label>
-    <p class="hint" id="vaultHint"></p>
-    <button type="button" class="btn" id="lockNow" data-i18n="lockNow" hidden></button>
+    <div class="card">
+      <label class="field"><span data-i18n="passphrase"></span><input id="passphrase" type="password" autocomplete="off"></label>
+      <p class="hint" id="vaultHint"></p>
+      <button type="button" class="btn" id="lockNow" data-i18n="lockNow" hidden></button>
+    </div>
   </section>
 
   <section>
     <h2 data-i18n="secData"></h2>
-    <dl class="stats" id="usage"></dl>
-    <button id="clear" type="button" class="btn" data-i18n="clearCache"></button>
+    <div class="card data">
+      <dl class="stats" id="usage"></dl>
+      <button id="clear" type="button" class="btn" data-i18n="clearCache"></button>
+    </div>
   </section>
   </div>
 </main>

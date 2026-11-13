@@ -31,6 +31,7 @@ function showSource() {
   $('aiKeyPanel').hidden = !key;
   $('aiServerHint').hidden = key;
 }
+function showPages() { $('sortPages').disabled = !$('sortAllPages').checked; }
 function showPreview() {
   const w = $('workAddress').value.trim(), tm = $('arriveBy').value;
   $('previewCap').textContent = !w ? t('previewCap') : tm ? t('previewCapToBy', w, tm) : t('previewCapTo', w);
@@ -70,10 +71,11 @@ async function load() {
   $('googleLimit').value = settings.googleLimit || 2000;
   $('tileUrl').value = settings.tileUrl || '';
   document.querySelector(`input[name=backend][value=${settings.backend === 'browser' ? 'browser' : 'server'}]`).checked = true;
-  showBackend(); showSource(); showPreview();
+  showBackend(); showSource(); showPreview(); showPages();
   const month = new Date().toISOString().slice(0, 7);
   $('usage').replaceChildren(dl(t('usageRoutes'), usage.routes?.[month] || 0), dl(t('usagePhotos'), usage.ai?.[month] || 0));
 }
+$('sortAllPages').addEventListener('change', showPages);
 for (const id of ['workAddress', 'arriveBy']) $(id).addEventListener('input', showPreview);
 for (const r of document.querySelectorAll('input[name=aiSource]')) r.addEventListener('change', showSource);
 for (const r of document.querySelectorAll('input[name=backend]')) r.addEventListener('change', showBackend);

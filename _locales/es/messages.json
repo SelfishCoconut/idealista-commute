@@ -641,5 +641,33 @@
   },
   "unlockBad": {
     "message": "Contraseña incorrecta."
+  },
+  "filterTransLabel": {
+    "message": "Trasbordos, máx."
+  },
+  "filterTimeLabel": {
+    "message": "Tiempo, máx."
+  },
+  "filterAria": {
+    "message": "Filtrar por trasbordos y tiempo al trabajo"
+  },
+  "progWaiting": {
+    "message": "$N1$ más al desplazarte o al ordenar",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "filterCount": {
+    "message": "$N1$ mostrados · $N2$ ocultos",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
   }
 }

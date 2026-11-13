@@ -641,5 +641,33 @@
   },
   "unlockBad": {
     "message": "Wrong passphrase."
+  },
+  "filterTransLabel": {
+    "message": "Changes, max"
+  },
+  "filterTimeLabel": {
+    "message": "Time, max"
+  },
+  "filterAria": {
+    "message": "Filter by changes and commute time"
+  },
+  "progWaiting": {
+    "message": "$N1$ more when you scroll or sort",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      }
+    }
+  },
+  "filterCount": {
+    "message": "$N1$ shown · $N2$ hidden",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
   }
 }

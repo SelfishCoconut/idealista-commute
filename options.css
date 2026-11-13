@@ -18,11 +18,20 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 400 14px/20px system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 640px; margin: 0 auto; padding: 32px 24px 112px; }
+main { max-width: 680px; margin: 0 auto; padding: 32px 24px 112px; }
 h1 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; }
-h2 { margin: 0 0 16px; font-size: 14px; line-height: 20px; font-weight: 500; }
+h2 { margin: 0 0 8px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-2); }
+.top { display: flex; align-items: center; gap: 16px; }
+.top img { border-radius: 10px; flex: none; }
 .sub { margin: 4px 0 0; color: var(--text-2); }
-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+section { margin-top: 32px; }
+.card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.card > :first-child { margin-top: 0; }
+.divider { height: 1px; margin: 16px 0; background: var(--line); }
+.nested { margin: 12px 0 0 48px; display: flex; align-items: center; gap: 12px; }
+.nested > span { margin: 0; }
+.nested input { width: 88px; }
+.nested:has(input:disabled) { opacity: .5; }
 .mono, input.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 a { color: var(--accent); text-underline-offset: 2px; }
@@ -40,6 +49,7 @@ a { color: var(--accent); text-underline-offset: 2px; }
 .field { display: block; margin-top: 16px; }
 h2 + .field { margin-top: 0; }
 .field > span { display: block; margin-bottom: 4px; color: var(--text); }
+.nested > span { display: block; }
 .hint { margin: 4px 0 0; font-size: 12px; line-height: 16px; color: var(--text-3); }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
 .grid .field { margin-top: 0; }
@@ -47,7 +57,7 @@ h2 + .field { margin-top: 0; }
 
 input[type=text], input[type=password], input[type=time], input[type=number], input:not([type]) {
   display: block; width: 100%; height: 36px; padding: 0 12px; font: inherit; color: var(--text);
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px;
   transition: border-color .12s var(--ease), background-color .12s var(--ease);
 }
 input::placeholder { color: var(--text-3); }
@@ -64,8 +74,8 @@ button:active { transform: scale(.98); }
 .primary:hover { opacity: .88; }
 
 /* toggle row */
-.switch { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; cursor: pointer; border-radius: 8px; }
-.switch input { appearance: none; flex: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--line-strong); position: relative; cursor: pointer; transition: background-color .12s var(--ease); }
+.switch { display: flex; align-items: flex-start; gap: 12px; margin: 0; cursor: pointer; border-radius: 8px; }
+.switch input { appearance: none; margin-top: 0; flex: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--line-strong); position: relative; cursor: pointer; transition: background-color .12s var(--ease); }
 .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 8px; background: #fff; transition: transform .12s var(--ease); }
 .switch input:checked { background: var(--accent); }
 .switch input:checked::after { transform: translateX(16px); }
@@ -75,10 +85,10 @@ button:active { transform: scale(.98); }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
 .opt { display: block; padding: 8px 12px; border-radius: 8px; cursor: pointer; text-align: center; color: var(--text-2); transition: background-color .12s var(--ease), color .12s var(--ease); }
 .opt input { position: absolute; opacity: 0; pointer-events: none; }
-.opt:has(input:checked) { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+.opt:has(input:checked) { font-weight: 500; background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
 .panel { margin-top: 16px; }
 .panel[hidden] { display: none; }
-.note { margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; line-height: 16px; color: var(--text-2); }
+.note { margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: var(--bg); font-size: 12px; line-height: 16px; color: var(--text-2); }
 
 /* connection status */
 .test { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
@@ -87,16 +97,19 @@ button:active { transform: scale(.98); }
 .test .msg { color: var(--text-2); min-width: 0; overflow-wrap: anywhere; }
 .test .msg:empty, .test:has(.msg:empty) .dot { display: none; }
 
-.stats { display: flex; gap: 32px; margin: 0 0 16px; }
+.card.data { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stats { display: flex; gap: 32px; margin: 0; }
 .stats div { display: block; }
 .stats dt { color: var(--text-3); font-size: 12px; line-height: 16px; }
 .stats dd { margin: 0; font-size: 20px; line-height: 28px; font-variant-numeric: tabular-nums; }
 
 /* fixed save bar */
-.bar { position: fixed; inset: auto 0 0 0; background: var(--bg); border-top: 1px solid var(--line); }
-.bar div { max-width: 640px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.bar { position: fixed; inset: auto 0 0 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); }
+.bar div { max-width: 680px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #status { color: var(--text-2); min-width: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* The unlock form shown instead of the settings while the keys are locked */
-#gate { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+#gate { margin-top: 32px; }
+#gate h2 { color: var(--text); font-size: 16px; }
+.panel > .hint:first-child, .panel.hint { margin-top: 16px; }

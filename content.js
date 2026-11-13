@@ -9,6 +9,7 @@
   const HOST = '.item-info-container, .item-detail-container';
 
   const seen = new WeakSet();
+  const settled = new WeakSet(); // cards whose commute job has finished, with or without a result
   const jobs = new WeakMap(); // card -> promise of its commute result
   let stopped = false;
 
@@ -136,6 +137,8 @@
       return;
     }
     card.dataset.icmMin = String(r.minutes);
+    card.dataset.icmTr = String(r.transfers);
+    applyFilter();
     const head = headRow(el('strong', 'icm-min', `${r.minutes} min`),
       el('span', 'icm-txt', r.transfers === 0 ? t('direct') : r.transfers === 1 ? t('changeOne') : t('changeMany', r.transfers)),
       aiField(idOf(card), true, card),
@@ -266,7 +269,7 @@
       } catch (e) {
         render(card, b, { status: 'error', message: e.message });
       }
-    })();
+    })().finally(() => settled.add(card));
     jobs.set(card, job);
     return job;
   }
@@ -297,6 +300,7 @@
   function attachExtras() {
     let anchor = lastCard();
     if (anchor) for (const n of extras) if (!n.isConnected) { anchor.after(n); anchor = n; }
+    applyFilter();
   }
   // The pages are fetched in the background as soon as the results list is up (when the option is on), kept detached, and
   // their commutes computed and cached. Sorting only has to attach them. `pageReport` shows the page being fetched.
@@ -349,6 +353,8 @@
     bgStarted = true;
     await sleep(3000);
     await Promise.all(cards().map((c) => jobs.get(c)).filter(Boolean)); // this page first
+    // With the sort-everything option on, the rest of this page is computed too, so the count keeps rising without scrolling.
+    if ((await browser.storage.local.get('settings')).settings?.sortAllPages) await Promise.all(cards().map(handle));
     ensurePages();
   }
   let sortStatus = '';
@@ -356,13 +362,15 @@
     const { settings = {} } = await browser.storage.local.get('settings');
     // idealista states the number of results in the page heading ("57 casas y pisos ...")
     const all = Number(/[\d.]+/.exec(document.querySelector('#h1-container__text, h1')?.textContent || '')?.[0]?.replace(/\./g, '')) || 0;
-    const cs = [...cards(), ...extras.filter((n) => !n.isConnected)], pending = cs.filter((c) => c.querySelector('.icm-badge.icm-loading')).length;
-    const ok = cs.filter((c) => c.dataset.icmMin).length;
-    return { all, option: !!settings.sortAllPages, total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0, pageProg: pagesPromise && pageProg ? { ...pageProg } : null };
+    const cs = [...cards(), ...extras.filter((n) => !n.isConnected)], ok = cs.filter((c) => c.dataset.icmMin).length;
+    // Only a finished job without a route is a failure; cards still loading or not started yet are waiting and count up with the rest.
+    const failed = cs.filter((c) => !c.dataset.icmMin && (settled.has(c) || stopped)).length;
+    return { all, option: !!settings.sortAllPages, total: cs.length, ok, pending: cs.length - ok - failed, failed, waiting: cs.filter((c) => !jobs.has(c)).length, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0, pageProg: pagesPromise && pageProg ? { ...pageProg } : null };
   }
   async function setSort(on, report = () => {}) {
     const setStatus = (m) => { sortStatus = m; report(m); };
     sortOn = on;
+    syncSortBtn();
     if (!on) {
       for (const n of extras) n.remove();
       if (original) placeInOrder(original.filter((c) => c.isConnected).concat(cards().filter((c) => !original.includes(c))));
@@ -434,18 +442,76 @@
     document.querySelector('.icm-sortbar')?.remove();
     return true;
   }
-  function installBar() {
-    if (document.querySelector('.icm-sortbar')) return;
+
+
+  // ---- filter by changes and commute time --------------------------------------------------------
+  // Hides listings whose computed route is over the limits. Listings without a result yet stay visible.
+  let flt = { tr: null, min: null }; // max changes / max minutes; null = no limit
+  let fltCount = null;
+  function applyFilter() {
+    let hidden = 0;
+    for (const c of cards()) {
+      const known = c.dataset.icmMin != null && c.dataset.icmMin !== '';
+      const out = known && ((flt.tr != null && Number(c.dataset.icmTr) > flt.tr) || (flt.min != null && Number(c.dataset.icmMin) > flt.min));
+      c.classList.toggle('icm-hidden', out);
+      if (out) hidden++;
+    }
+    if (fltCount) fltCount.textContent = t('filterCount', cards().length - hidden, hidden);
+  }
+  const limit = (v) => (v === '' || v == null || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Math.floor(Number(v)));
+  let syncSortBtn = () => {}, filterBar = null;
+  function installFilter() {
+    // A bar left in the page by an older copy of this script (extension reloaded without refreshing the tab) is replaced.
+    for (const old of document.querySelectorAll('.icm-filterbar')) { if (old === filterBar && old.isConnected) return; old.remove(); }
     const first = cards()[0];
     if (!first?.parentElement) return;
-    const bar = el('div', 'icm-sortbar');
+    const bar = filterBar = el('div', 'icm-filterbar');
+    bar.setAttribute('role', 'group');
+    bar.setAttribute('aria-label', t('filterAria'));
     const btn = el('button', 'icm-sortbtn', t('sortBtn'));
     btn.type = 'button';
+    syncSortBtn = () => { btn.classList.toggle('icm-on', sortOn); btn.textContent = sortOn ? t('sortedBtn') : t('sortBtn'); };
     const status = el('span', 'icm-sortstatus');
-    barStatus = (t) => { status.textContent = t; };
-    btn.addEventListener('click', () => { btn.classList.toggle('icm-on', !sortOn); btn.textContent = sortOn ? t('sortBtn') : t('sortedBtn'); setSort(!sortOn, barStatus); });
-    bar.append(btn, status);
+    status.setAttribute('role', 'status');
+    barStatus = (m) => { status.textContent = m; };
+    btn.addEventListener('click', () => setSort(!sortOn, barStatus));
+    fltCount = el('span', 'icm-sortstatus');
+    fltCount.setAttribute('aria-live', 'polite');
+    const inputs = {};
+    const field = (key, label, unit, step, cls) => {
+      const i = el('input', 'icm-filterin ' + cls);
+      i.type = 'number'; i.min = '0'; i.step = String(step); i.inputMode = 'numeric'; i.placeholder = '–'; i.setAttribute('aria-label', label + (unit ? ' (' + unit + ')' : ''));
+      i.addEventListener('input', () => { flt[key] = limit(i.value); applyFilter(); try { browser.storage.local.set({ commuteFilter: flt }); } catch {} });
+      inputs[key] = i;
+      // Big own − / + buttons instead of the browser's tiny arrows; they step by `step` and an empty box means no limit.
+      const stepBtn = (sign, text) => {
+        const b = el('button', 'icm-step', text);
+        b.type = 'button';
+        b.setAttribute('aria-label', label + (sign > 0 ? ' +' : ' −') + step);
+        b.addEventListener('click', () => {
+          const cur = limit(i.value);
+          const next = cur == null ? (sign > 0 ? step : null) : cur + sign * step;
+          i.value = next == null || next < (key === 'tr' ? 0 : 1) ? '' : String(next);
+          i.dispatchEvent(new Event('input'));
+        });
+        return b;
+      };
+      const w = el('div', 'icm-filterfield');
+      const lab = el('span', null, label);
+      w.append(lab, stepBtn(-1, '−'), i, stepBtn(1, '+'));
+      if (unit) w.append(el('span', null, unit));
+      return w;
+    };
+    bar.append(btn, field('tr', t('filterTransLabel'), '', 1, 'icm-sm'), field('min', t('filterTimeLabel'), 'min', 15, 'icm-md'), status, fltCount);
+    const sortbar = document.querySelector('.icm-sortbar'); sortbar?.remove();
     first.parentElement.insertBefore(bar, first);
+    applyFilter();
+    browser.storage.local.get('commuteFilter').then(({ commuteFilter: f }) => {
+      if (!f) return;
+      flt = { tr: limit(f.tr), min: limit(f.min) };
+      for (const k of ['tr', 'min']) inputs[k].value = flt[k] ?? '';
+      applyFilter();
+    }).catch(() => {});
   }
 
   // Only compute for cards near the viewport so scrolling a long list doesn't burn API quota.
@@ -602,7 +668,8 @@
   let installTimer = null;
   function install() {
     installTimer = null;
-    try { if (!installNativeSort()) installBar(); } catch (e) { console.error('[idealista-commute] sort menu', e); try { installBar(); } catch {} }
+    try { installNativeSort(); } catch (e) { console.error('[idealista-commute] sort menu', e); }
+    try { installFilter(); applyFilter(); } catch (e) { console.error('[idealista-commute] filter', e); }
     try { initDetail(); } catch (e) { console.error('[idealista-commute] detail page', e); }
     try { startBackground(); } catch (e) { console.error('[idealista-commute] pages', e); }
     try { scheduleResort(); } catch (e) { console.error('[idealista-commute] resort', e); }

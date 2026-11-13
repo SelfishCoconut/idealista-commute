@@ -7,13 +7,19 @@
 <link rel="stylesheet" href="popup.css">
 </head>
 <body class="popup">
-  <header><h1 data-i18n="actionTitle"></h1><a href="#" id="options" data-i18n="openOptions"></a></header>
+  <header>
+    <img src="icons/icon-32.png" alt="" width="24" height="24">
+    <h1 data-i18n="popupTitle"></h1>
+    <a href="#" id="options" class="icon" data-i18n-title="openOptions" data-i18n-aria-label="openOptions">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+    </a>
+  </header>
   <p class="state" id="state" role="status"></p>
-  <form id="form" hidden>
+  <form id="form" class="card" hidden>
     <label class="field"><span data-i18n="passphrase"></span><input id="passphrase" type="password" autocomplete="off"></label>
     <button id="unlock" type="submit" class="primary" data-i18n="unlock"></button>
   </form>
-  <section id="prog" hidden>
+  <section id="prog" class="card" hidden>
     <h2 data-i18n="progTitle"></h2>
     <p id="pagesText" hidden></p>
     <progress id="pagesBar" max="1" value="0" hidden></progress>
@@ -22,7 +28,7 @@
     <p id="progSub" class="sub"></p>
     <p id="progAll" class="sub"></p>
   </section>
-  <form id="settings" hidden>
+  <form id="settings" class="card" hidden>
     <h2 data-i18n="popSettings"></h2>
     <label class="field"><span data-i18n="workAddress"></span><input id="workAddress" autocomplete="off"></label>
     <label class="field"><span data-i18n="arriveBy"></span><input id="arriveBy" type="time"></label>

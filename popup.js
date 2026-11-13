@@ -12,6 +12,7 @@ async function render() {
   const locked = v.exists && !v.unlocked;
   $('state').textContent = !v.exists ? t('popupNone')
     : locked ? t('popupLocked') : t('popupUnlocked');
+  $('state').dataset.kind = !v.exists ? 'none' : locked ? 'locked' : 'open';
   $('form').hidden = !locked;
   $('settings').hidden = locked;
   if (locked) $('passphrase').focus();
@@ -53,7 +54,7 @@ async function poll() {
   $('progText').textContent = p.pending || p.status ? (p.status || t('progCounts', p.ok + p.failed, p.total)) : t('progDone');
   const more = p.all > p.total;
   $('progAll').textContent = more ? [t('progLoaded', p.total, p.all), p.pages ? t('progOthersIn') : p.option ? t('progOthersOnSort') : t('progOthersOff')].join('. ') : '';
-  $('progSub').textContent = [p.pending ? t('progCounts', p.ok + p.failed, p.total) : '', p.failed ? t('progFailed', p.failed) : '', ''].filter(Boolean).join(' · ');
+  $('progSub').textContent = [p.pending ? t('progCounts', p.ok + p.failed, p.total) : '', p.failed ? t('progFailed', p.failed) : '', p.waiting && !p.sorting ? t('progWaiting', p.waiting) : ''].filter(Boolean).join(' · ');
 }
 poll(); setInterval(poll, 600);
 loadSettings();
