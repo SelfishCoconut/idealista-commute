@@ -234,6 +234,26 @@
       }
     }
   },
+  "progLoaded": {
+    "message": "Cargados $N1$ de $N2$ anuncios de la búsqueda",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "progOthersOnSort": {
+    "message": "Las demás páginas se cargan al ordenar por tiempo"
+  },
+  "progOthersOff": {
+    "message": "Las demás páginas no se incluyen (actívalo en las opciones)"
+  },
+  "progOthersIn": {
+    "message": "Incluye las demás páginas"
+  },
   "progDone": {
     "message": "Todo calculado"
   },

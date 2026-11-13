@@ -45,14 +45,16 @@ async function poll() {
   } catch { p = null; }
   if (!p) page = null;
   $('prog').hidden = false;
-  if (!p) { $('bar').hidden = true; $('progText').textContent = t('progNoPage'); $('progSub').textContent = ''; return; }
+  if (!p) { $('bar').hidden = true; $('progText').textContent = t('progNoPage'); $('progSub').textContent = ''; $('progAll').textContent = ''; return; }
   const pp = p.pageProg; // the other result pages, when "include other pages" is on and a sort is running
   $('pagesText').hidden = $('pagesBar').hidden = !pp;
   if (pp) { $('pagesBar').max = Math.max(1, pp.planned); $('pagesBar').value = pp.done; $('pagesText').textContent = t('progPagesLoad', pp.done + 1, pp.planned + 1); }
   $('bar').hidden = false;
   $('bar').max = Math.max(1, p.total); $('bar').value = p.ok + p.failed;
   $('progText').textContent = p.pending || p.status ? (p.status || t('progCounts', p.ok + p.failed, p.total)) : t('progDone');
-  $('progSub').textContent = [p.pending ? t('progCounts', p.ok + p.failed, p.total) : '', p.failed ? t('progFailed', p.failed) : '', p.pages ? t('progPages', p.pages) : ''].filter(Boolean).join(' · ');
+  const more = p.all > p.total;
+  $('progAll').textContent = more ? [t('progLoaded', p.total, p.all), p.pages ? t('progOthersIn') : p.option ? t('progOthersOnSort') : t('progOthersOff')].join('. ') : '';
+  $('progSub').textContent = [p.pending ? t('progCounts', p.ok + p.failed, p.total) : '', p.failed ? t('progFailed', p.failed) : '', ''].filter(Boolean).join(' · ');
 }
 poll(); setInterval(poll, 600);
 loadSettings();

@@ -339,10 +339,13 @@
     if (blocked) setStatus(t('pagesBlocked'));
   }
   let sortStatus = '';
-  function progress() { // read by the toolbar popup
+  async function progress() { // read by the toolbar popup
+    const { settings = {} } = await browser.storage.local.get('settings');
+    // idealista states the number of results in the page heading ("57 casas y pisos ...")
+    const all = Number(/[\d.]+/.exec(document.querySelector('#h1-container__text, h1')?.textContent || '')?.[0]?.replace(/\./g, '')) || 0;
     const cs = cards(), pending = cs.filter((c) => c.querySelector('.icm-badge.icm-loading')).length;
     const ok = cs.filter((c) => c.dataset.icmMin).length;
-    return { total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0, pageProg: sortOn && pageProg ? { ...pageProg, loading: !!extrasLoading } : null };
+    return { all, option: !!settings.sortAllPages, total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0, pageProg: sortOn && pageProg ? { ...pageProg, loading: !!extrasLoading } : null };
   }
   async function setSort(on, report = () => {}) {
     const setStatus = (m) => { sortStatus = m; report(m); };
@@ -605,7 +608,7 @@
   }
   browser.runtime.onMessage.addListener((m) => {
     if (m?.type === 'unlocked') location.reload();
-    if (m?.type === 'getProgress') return Promise.resolve(progress());
+    if (m?.type === 'getProgress') return progress();
   });
   promptUnlock();
 

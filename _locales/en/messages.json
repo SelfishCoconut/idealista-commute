@@ -234,6 +234,26 @@
       }
     }
   },
+  "progLoaded": {
+    "message": "Loaded $N1$ of $N2$ listings of this search",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
+  "progOthersOnSort": {
+    "message": "The other pages are loaded when you sort by commute"
+  },
+  "progOthersOff": {
+    "message": "The other pages are not included (turn it on in the options)"
+  },
+  "progOthersIn": {
+    "message": "Includes the other pages"
+  },
   "progDone": {
     "message": "All calculated"
   },
