@@ -61,3 +61,15 @@ test('sightengine.scoreImage: POST body carries the credentials, errors classifi
   const down = async () => new Response('{}', { status: 500 });
   await assert.rejects(() => scoreImage('x', creds, down), (e) => !e.fatal && e.retryable === true);
 });
+
+test('browser mode: lib/google.js is an exact copy of the server module; geocode falls back and fails only when both fail', async () => {
+  const fs = await import('node:fs');
+  assert.equal(fs.readFileSync(new URL('../lib/google.js', import.meta.url), 'utf8'), fs.readFileSync(new URL('../server/gateway/google.mjs', import.meta.url), 'utf8'),
+    'lib/google.js must be a copy of server/gateway/google.mjs (the server dir is not packaged): re-copy it');
+  const { geocode } = await import('../lib/direct.js');
+  const hit = { lat: 1, lng: 2, label: 'x' };
+  assert.deepEqual(await geocode('q', { nominatimFn: async () => null, photonFn: async () => hit }), hit);
+  assert.equal(await geocode('q', { nominatimFn: async () => null, photonFn: async () => null }), null);
+  assert.deepEqual(await geocode('q', { nominatimFn: async () => { throw new Error('x'); }, photonFn: async () => hit }), hit);
+  await assert.rejects(() => geocode('q', { nominatimFn: async () => { throw new Error('x'); }, photonFn: async () => { throw new Error('y'); } }), (e) => e.retryable === true);
+});

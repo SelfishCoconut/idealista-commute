@@ -1,12 +1,16 @@
 import { parseAddress, addressCandidates, nextArrival } from './lib/address.js';
-import { Throttle, withRetry } from './lib/throttle.js';
+import { Throttle, ProviderError, withRetry } from './lib/throttle.js';
 import * as backend from './lib/backend.js';
 import { buildMapSvg } from './lib/map.js';
 import * as sightengine from './lib/sightengine.js';
+import * as direct from './lib/direct.js';
 
 const DEFAULTS = {
   serverUrl: '', // empty = http://127.0.0.1:8085 (this machine); or any server speaking docs/backend-api.md
   accessToken: '', // optional shared secret, if the server sets ACCESS_TOKEN
+  backend: 'server', // commute: 'server' (above) or 'browser' (this browser calls Google/OpenStreetMap itself with the key below)
+  googleKey: '', // own Google Routes API key, used only when backend is 'browser'
+  googleLimit: 2000, // routes per month in this browser (browser mode)
   workAddress: '',
   arriveBy: '09:00',
   citySuffix: 'Madrid, España',
@@ -43,6 +47,13 @@ async function cached(key, producer, { cacheNull = true } = {}) {
   return p;
 }
 
+// Browser mode has no server to enforce a cap, so this browser counts its own paid route calls.
+async function checkLocalLimit(s) {
+  const month = new Date().toISOString().slice(0, 7);
+  const { usage = {} } = await browser.storage.local.get('usage');
+  if ((usage.routes?.[month] || 0) >= s.googleLimit) throw new ProviderError(`Monthly route limit (${s.googleLimit}) reached in this browser; raise it in the options.`, { fatal: true });
+}
+
 async function bumpUsage() {
   const month = new Date().toISOString().slice(0, 7);
   const { usage = {} } = await browser.storage.local.get('usage');
@@ -56,7 +67,7 @@ async function bumpUsage() {
 async function geocode(query, s) {
   for (const c of addressCandidates(query, s.citySuffix)) {
     const hit = await cached(`g:${c.toLowerCase()}`, () =>
-      th('geo', 20, true).run(() => withRetry(() => backend.geocode(c, s), [1500])), { cacheNull: false });
+      th('geo', 20, true).run(() => withRetry(() => (s.backend === 'browser' ? direct.geocode(c) : backend.geocode(c, s)), [1500])), { cacheNull: false });
     if (hit) return { ...hit, matched: c };
   }
   return null;
@@ -78,8 +89,11 @@ async function commute(title, pin) {
   const key = `r5:${home.lat.toFixed(4)},${home.lng.toFixed(4)}:${work.lat.toFixed(4)},${work.lng.toFixed(4)}:${s.arriveBy}`;
   const route = await cached(key, () =>
     th('route', 100, true).run(async () => {
+      if (s.backend === 'browser') await checkLocalLimit(s);
       await bumpUsage();
-      const r = await withRetry(() => backend.route({ from: home, to: work, arriveBy: s.arriveBy, serverUrl: s.serverUrl, accessToken: s.accessToken }));
+      const r = await withRetry(() => (s.backend === 'browser'
+        ? direct.route({ from: home, to: work, arriveBy: s.arriveBy, googleKey: s.googleKey })
+        : backend.route({ from: home, to: work, arriveBy: s.arriveBy, serverUrl: s.serverUrl, accessToken: s.accessToken })));
       if (s.debug) console.debug('[idealista-commute] route', addr, r);
       return r;
     }), { cacheNull: false }); // "no route" may be transient or a settings issue; retry next time
@@ -91,9 +105,10 @@ async function commute(title, pin) {
 
 // Map tiles come through the server (shared disk cache, one identified client) and are handed to the page
 // as data: URLs, so the idealista page never contacts a tile server and its CSP is not an obstacle.
+const tileFor = (s, z, x, y) => (s.backend === 'browser' ? direct.tileDataUrl(z, x, y) : backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
 async function mapFor(route) {
   const s = await getSettings();
-  return buildMapSvg(route, (z, x, y) => backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
+  return buildMapSvg(route, (z, x, y) => tileFor(s, z, x, y));
 }
 
 // Photo check. The options say where it runs: 'browser' calls Sightengine directly with the user's own key,
@@ -123,7 +138,7 @@ browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'openOptions') return browser.runtime.openOptionsPage();
-  if (msg?.type === 'tile') return getSettings().then((st) => backend.tileDataUrl(st.serverUrl, msg.z, msg.x, msg.y, st.accessToken)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
+  if (msg?.type === 'tile') return getSettings().then((st) => tileFor(st, msg.z, msg.x, msg.y)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'map') return mapFor(msg.route).then((svg) => ({ svg })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'aicheck') {
     return getSettings().then((st) => aiCheck(msg.images, st)).then((images) => ({ images }))

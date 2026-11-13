@@ -41,7 +41,13 @@
   </section>
 
   <section>
-    <h2>Server</h2>
+    <h2>Where it runs</h2>
+    <div class="seg" role="radiogroup" aria-label="Commute backend">
+      <label class="opt"><input type="radio" name="backend" value="server" checked>My server</label>
+      <label class="opt"><input type="radio" name="backend" value="browser">This browser</label>
+    </div>
+    <div class="panel" id="serverPanel">
+    <p class="hint" id="serverWhy" hidden style="margin:16px 0 0">Your server is only used for the photo check</p>
     <label class="field"><span>Server URL</span>
       <input id="serverUrl" class="mono" placeholder="http://127.0.0.1:8085" autocomplete="off" spellcheck="false">
       <p class="hint">Leave empty for this machine, or enter an address such as <code>192.168.1.50</code> or <code>https://commute.example.org</code></p>
@@ -51,6 +57,14 @@
       <p class="hint">Only if the server sets <code>ACCESS_TOKEN</code></p>
     </label>
     <div class="test"><button id="test" type="button" class="btn">Test server</button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
+    </div>
+    <div class="panel" id="browserPanel" hidden>
+      <div class="grid">
+        <label class="field"><span>Google Routes API key</span><input id="googleKey" class="mono" type="password" autocomplete="off"></label>
+        <label class="field"><span>Routes per month</span><input id="googleLimit" type="number" min="1" value="2000"></label>
+      </div>
+      <div class="note">No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored unencrypted in this browser profile, answers are cached here only, and the monthly limit is counted per browser.</div>
+    </div>
   </section>
 
   <section>
