@@ -123,14 +123,14 @@
         head.classList.add('icm-click');
         head.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); browser.runtime.sendMessage({ type: 'openOptions' }); });
       }
-      if (card.classList.contains('icm-detail') && r.status !== 'setup') head.append(aiField(idOf(card), true)); // photo check works without a route
+      if (card.classList.contains('icm-detail') && r.status !== 'setup') head.append(aiField(idOf(card), true, card)); // photo check works without a route
       b.append(head);
       return;
     }
     card.dataset.icmMin = String(r.minutes);
     const head = headRow(el('strong', 'icm-min', `${r.minutes} min`),
       el('span', 'icm-txt', r.transfers === 0 ? 'Direct' : `${r.transfers} change${r.transfers === 1 ? '' : 's'}`),
-      aiField(idOf(card), card.classList.contains('icm-detail')),
+      aiField(idOf(card), true, card),
       icon('chevron', 'icm-chev'));
     head.classList.add('icm-click');
     head.setAttribute('role', 'button');
@@ -396,7 +396,7 @@
   // Per-photo scores are cached (browser 30 days, server 30 days), so the same photo is never scanned twice.
   const verdict = (max) => (max >= 0.7 ? ['bad', 'Likely AI-generated photos'] : max >= 0.3 ? ['warn', 'Inconclusive'] : ['ok', 'Photos look real']);
   const pct = (x) => Math.round(x * 100) + '%';
-  const aiRes = new Map(), aiFields = new Map(), aiBusy = new Set(), aiLoaded = new Set();
+  const aiRes = new Map(), aiFields = new Map(), aiBusy = new Set(), aiLoaded = new Set(), aiCards = new Map();
   let detailHolder = null;
   const scoredOf = (r) => (r?.images || []).filter((i) => typeof i.score === 'number');
 
@@ -412,7 +412,7 @@
       f.title = `${label}: ${scored.length} of ${r.total} photos scanned, highest chance of AI ${pct(max)}`;
       f.append(el('strong', 'icm-min', pct(max)), el('span', 'icm-txt', 'AI'));
     } else if (r?.error) { f.title = r.error; f.append(el('span', 'icm-txt', 'AI check failed: ' + (r.error.length > 48 ? r.error.slice(0, 47) + '…' : r.error))); }
-    else if (f._scan) f.append(el('span', 'icm-link', 'Scan photos for AI'));
+    else if (f._scan) f.append(el('span', 'icm-link', 'Scan for AI'));
     if (f._scan && !scored.length) { f.classList.add('icm-click'); f.setAttribute('role', 'button'); f.tabIndex = 0; }
   }
   function paintAll(id) {
@@ -426,7 +426,8 @@
     if (hit && !aiRes.has(id) && Date.now() - hit.ts < 7 * 86400e3) { aiRes.set(id, hit); paintAll(id); }
   }
   // The field for one listing; `canScan` (listing page only) makes it the button that starts the scan.
-  function aiField(id, canScan) {
+  function aiField(id, canScan, card) {
+    if (id && card) aiCards.set(id, card);
     const f = el('span', 'icm-aifield');
     f._scan = canScan;
     (aiFields.get(id) || aiFields.set(id, new Set()).get(id)).add(f);
@@ -436,6 +437,20 @@
     paintField(id, f);
     if (id) loadAi(id).catch(() => {});
     return f;
+  }
+
+  async function listingHtml(id, card) {
+    const own = card?.outerHTML || '';
+    if (Date.now() < pinPausedUntil) return own;
+    const html = await (pinChain = pinChain.then(async () => {
+      if (Date.now() < pinPausedUntil) return null;
+      await sleep(300 + Math.random() * 400);
+      const res = await fetch(`/inmueble/${id}/`, { credentials: 'same-origin' });
+      const text = await res.text();
+      if (idl.looksBlocked(res.status, text)) { pinPausedUntil = Date.now() + 30 * 60e3; return null; }
+      return res.ok ? text : null;
+    }, () => null));
+    return html || own;
   }
 
   // Thumbnails of the scanned photos (with their own %) under the commute row, listing page only.
@@ -469,7 +484,10 @@
     aiBusy.add(id); paintAll(id);
     try {
       idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
-      const all = idl.photoUrls(document.documentElement.outerHTML);
+      // On the listing page the photos are right here; from the results list the listing's own page is fetched (same
+      // origin, one at a time, like the exact-pin lookup), falling back to the card's own thumbnails if idealista objects.
+      const onPage = detailHolder && idOf(detailHolder) === id;
+      const all = idl.photoUrls(onPage ? document.documentElement.outerHTML : await listingHtml(id, aiCards.get(id)));
       console.info('[idealista-commute] photo check: photos found on page:', all.length, all.slice(0, 3));
       if (!all.length) { aiRes.set(id, { error: 'No listing photos found on this page', images: [] }); return; }
       // Per-photo cache: a photo scanned before is never sent again; new random picks prefer unscanned photos.
