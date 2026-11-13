@@ -55,6 +55,7 @@ M = {
 'progCounts': ('$1 de $2 anuncios calculados', '$1 of $2 listings calculated'),
 'progFailed': ('$1 sin resultado (sin ruta, ubicación o error)', '$1 without a result (no route, location or error)'),
 'progPages': ('Incluye $1 páginas más de resultados', 'Includes $1 more result pages'),
+'progPagesLoad': ('Páginas de resultados: $1 de $2', 'Result pages: $1 of $2'),
 'progDone': ('Todo calculado', 'All calculated'),
 'popSettings': ('Trabajo y hora de llegada', 'Work and arrival time'),
 'popSave': ('Guardar y recargar la página', 'Save and reload the page'),

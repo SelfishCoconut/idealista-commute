@@ -291,7 +291,8 @@
   }
   // Optional (options page): the other result pages are fetched (same-origin, slowly, like opening them yourself) and their
   // listings are added under this page while the sort is on, so they take part in it. Removed again when the sort is turned off.
-  let extras = [], extrasDone = false, extrasLoading = null;
+  let extras = [], extrasDone = false, extrasLoading = null, pageProg = null; // pageProg: { done, planned } while/after pages are loaded
+  const highestPage = (root) => Math.max(0, ...[...root.querySelectorAll('.pagination a[href*="pagina-"]')].map((a) => Number(/pagina-(\d+)\.htm/.exec(a.getAttribute('href'))?.[1] || 0)));
   const lastCard = () => cards().filter((c) => !extras.includes(c)).pop();
   function attachExtras() {
     let anchor = lastCard();
@@ -301,11 +302,13 @@
     const { settings = {} } = await browser.storage.local.get('settings');
     if (!settings.sortAllPages) return;
     if (extrasDone) { attachExtras(); return; }
+    pageProg = null;
     idl ||= await import(browser.runtime.getURL('lib/idealista.js'));
     const build = idl.pageUrlBuilder([...document.querySelectorAll('.pagination a[href*="pagina-"]')].map((a) => a.getAttribute('href')), location.href);
     if (!build) { extrasDone = true; return; }
     const cur = idl.currentPage(location.pathname), max = Math.min(20, Math.max(2, Number(settings.sortPages) || 5));
     const known = new Set(cards().map(idOf));
+    pageProg = { done: 0, planned: Math.min(max, Math.max(cur, highestPage(document))) - 1 };
     let anchor = lastCard(), blocked = false;
     for (let n = 1; n <= max && !blocked; n++) {
       if (n === cur) continue;
@@ -318,8 +321,11 @@
         if (idl.looksBlocked(res.status, html)) { blocked = true; break; }
         if (!res.ok) continue;
       } catch { continue; }
-      const fresh = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll(CARD)];
-      if (!fresh.length && n > cur) break; // past the last page
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      pageProg.done++;
+      pageProg.planned = Math.max(pageProg.done, Math.min(max, Math.max(cur, highestPage(doc), highestPage(document))) - 1); // the real last page shows up as we go
+      const fresh = [...doc.querySelectorAll(CARD)];
+      if (!fresh.length && n > cur) { pageProg.planned = pageProg.done; break; } // past the last page
       for (const a of fresh) {
         const id = idOf(a);
         if (!id || known.has(id)) continue;
@@ -336,7 +342,7 @@
   function progress() { // read by the toolbar popup
     const cs = cards(), pending = cs.filter((c) => c.querySelector('.icm-badge.icm-loading')).length;
     const ok = cs.filter((c) => c.dataset.icmMin).length;
-    return { total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0 };
+    return { total: cs.length, ok, pending, failed: cs.length - ok - pending, sorting: sortOn, status: sortStatus, pages: extras.length ? new Set(extras.map((n) => n.dataset.icmExtra)).size : 0, pageProg: sortOn && pageProg ? { ...pageProg, loading: !!extrasLoading } : null };
   }
   async function setSort(on, report = () => {}) {
     const setStatus = (m) => { sortStatus = m; report(m); };

@@ -223,6 +223,17 @@
       }
     }
   },
+  "progPagesLoad": {
+    "message": "Páginas de resultados: $N1$ de $N2$",
+    "placeholders": {
+      "n1": {
+        "content": "$1"
+      },
+      "n2": {
+        "content": "$2"
+      }
+    }
+  },
   "progDone": {
     "message": "Todo calculado"
   },

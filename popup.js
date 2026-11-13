@@ -46,6 +46,9 @@ async function poll() {
   if (!p) page = null;
   $('prog').hidden = false;
   if (!p) { $('bar').hidden = true; $('progText').textContent = t('progNoPage'); $('progSub').textContent = ''; return; }
+  const pp = p.pageProg; // the other result pages, when "include other pages" is on and a sort is running
+  $('pagesText').hidden = $('pagesBar').hidden = !pp;
+  if (pp) { $('pagesBar').max = Math.max(1, pp.planned); $('pagesBar').value = pp.done; $('pagesText').textContent = t('progPagesLoad', pp.done + 1, pp.planned + 1); }
   $('bar').hidden = false;
   $('bar').max = Math.max(1, p.total); $('bar').value = p.ok + p.failed;
   $('progText').textContent = p.pending || p.status ? (p.status || t('progCounts', p.ok + p.failed, p.total)) : t('progDone');
