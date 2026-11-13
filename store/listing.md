@@ -81,3 +81,12 @@ Open source: https://github.com/SelfishCoconut/idealista-commute
   services the user configures, described in PRIVACY.md.
 - **Encryption.** `lib/vault.js`: WebCrypto PBKDF2-SHA256 (600k) → AES-256-GCM; decrypted keys only in `storage.session`.
 - **Testing.** `npm test`; the server has its own tests.
+
+## Screenshots (store/screenshots/)
+Made with `tools/screenshots/` (a stub of the browser API runs the real content script and pages in headless Firefox;
+`node tools/screenshots/serve.mjs 8099 &` then `node tools/screenshots/shoot.mjs`). The listings are demo data.
+1. `1-resultados-es.png`: commute line, map and steps on a results page (Spanish)
+2. `2-results-en.png`: the same in English
+3. `3-opciones-es.png`: options page (Spanish)
+4. `4-options-en.png`: options page (English)
+5. `5-bloqueado-es.png`: options page while the keys are locked

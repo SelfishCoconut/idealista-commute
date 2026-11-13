@@ -97,3 +97,6 @@ button:active { transform: scale(.98); }
 .bar div { max-width: 640px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #status { color: var(--text-2); min-width: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* The unlock form shown instead of the settings while the keys are locked */
+#gate { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }

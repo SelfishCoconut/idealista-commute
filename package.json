@@ -10,7 +10,7 @@
     "url": "git+https://github.com/SelfishCoconut/idealista-commute.git"
   },
   "scripts": {
-    "test": "node --test test/ server/gateway/",
+    "test": "node --test \"test/*.test.js\" \"server/gateway/*.test.mjs\"",
     "lint": "web-ext lint",
     "build": "web-ext build",
     "server": "node server/gateway/gateway.mjs"

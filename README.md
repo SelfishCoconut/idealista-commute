@@ -41,6 +41,18 @@ Firefox extension · run it on your own server or entirely in the browser · you
 > Spain-focused: geocoding is restricted to Spain and the defaults assume Madrid (city suffix, map bias).
 > Change the *City suffix* option for another Spanish city.
 
+## Screenshots
+
+<p align="center">
+  <img src="store/screenshots/1-resultados-es.png" alt="Commute line, map and steps on a results page" width="720">
+</p>
+
+| Options | English | Locked keys |
+|---|---|---|
+| <img src="store/screenshots/3-opciones-es.png" width="260"> | <img src="store/screenshots/2-results-en.png" width="260"> | <img src="store/screenshots/5-bloqueado-es.png" width="260"> |
+
+(Demo data, generated with `tools/screenshots/`.)
+
 ## How it works
 
 ```mermaid

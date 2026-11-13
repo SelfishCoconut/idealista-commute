@@ -1,6 +1,9 @@
 // Interactive route map. Runs as an extension page inside an iframe that the content script puts under the
 // listing's badge (so idealista's own scripts can't touch it). Tiles come from your server (shared disk cache).
 import { normalizeServerUrl } from './lib/url.js';
+import { t, applyI18n } from './lib/i18n.js';
+
+applyI18n();
 
 let map;
 const lat = (p) => [p[0], p[1]];
@@ -39,7 +42,7 @@ function draw(route, base) {
       html: `<div class="icm-ridepin" style="background:${s.bg || '#1d4ed8'};color:${s.fg || '#fff'}">${esc(s.line || '')}</div>` });
     L.marker(s.board, { icon, interactive: false, keyboard: false }).addTo(map);
   }
-  for (const [pt, text, color] of [[route.home, 'Home', '#dc2626'], [route.work, 'Work', '#111827']]) {
+  for (const [pt, text, color] of [[route.home, t('mapHome'), '#dc2626'], [route.work, t('mapWork'), '#111827']]) {
     const icon = L.divIcon({ className: '', iconSize: [0, 0],
       html: `<div class="icm-pin"><span class="icm-dot" style="background:${color}"></span><span class="icm-lbl">${text}</span></div>` });
     L.marker([pt.lat, pt.lng], { icon, interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map);
