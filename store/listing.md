@@ -21,7 +21,7 @@ idealista, commute, real estate, transit, map, housing, spain
 - Homepage / support site: https://github.com/SelfishCoconut/idealista-commute
 - Support issues: https://github.com/SelfishCoconut/idealista-commute/issues
 - Privacy policy: paste the text of `PRIVACY.md`
-- License: MIT (choose it from the list)
+- License: AMO has no Beerware preset, so choose **Custom License** and paste the text of `LICENSE` (Beerware, Revision 42). Leaflet (BSD-2-Clause) keeps its own licence in `lib/vendor/leaflet/`
 
 ## Description (Spanish)
 

@@ -8,12 +8,12 @@
 
 Spanish by default, English when your browser is in English.
 
-Firefox extension · run it on your own server or entirely in the browser · your API keys stay encrypted
+Firefox extension · two ways to run it: **with your own API keys in the browser**, or **through a server you host yourself**
 
 ![Firefox](https://img.shields.io/badge/Firefox-140%2B-ff7139?logo=firefoxbrowser&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4b8bbe)
 ![Node](https://img.shields.io/badge/server-Node%2022%2C%20zero%20deps-5fa04e?logo=nodedotjs&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License](https://img.shields.io/badge/license-Beerware-f5a623)
 
 </div>
 
@@ -21,25 +21,37 @@ Firefox extension · run it on your own server or entirely in the browser · you
 
 ## What you get
 
-- **A commute line on every listing**: `🚇 28 min · 1 change ▾`. Click it for an **interactive map** (drag, zoom, scroll)
+- **A commute line on every listing**: `28 min · 1 change ▾`. Click it for an **interactive map** (drag, zoom, scroll)
   with home, work and the route, the numbered steps, and an *Open in Google Maps* link.
-- **Sort by commute time**: a *Tiempo al trabajo* entry is added to idealista's own *Ordenar* list. Only listings
-  without a result yet are computed; the rest come from cache.
+- **Sort by commute time**: an entry is added to idealista's own *Ordenar* list. Only listings without a result yet
+  are computed; the rest come from cache.
 - **The exact pin**: the extension reads the listing's own map page (`/inmueble/<id>/mapa`) instead of guessing from
   the title, which avoids street-name mix-ups. If idealista objects it falls back to the address.
-- **Fake-photo check**: on a listing page, one click scans up to **3 random photos** with
-  [Sightengine](https://sightengine.com)'s AI-image detector and shows the % chance each one is AI-generated, so you
-  can spot a fake advertisement. Optional, needs a free Sightengine account, and works two ways: put the credentials in
-  `server/.env` (`SIGHTENGINE_USER`/`SIGHTENGINE_SECRET`: key stays on the server, shared cache and cap), or type them into
-  the extension options (the browser calls Sightengine directly, no server needed; the credentials are stored encrypted
-  behind your passphrase, see [Your keys](#your-keys)). The options choose which one is used. Every scanned photo is cached, so it is never scanned twice.
-- **Cheap by design**: every answer is cached, in your browser and on your server, so the same trip is never paid
-  for twice, and the server enforces a hard monthly cap on paid calls.
-- **Your backend, your rules**: the extension talks to *one* server through a [small HTTP contract](docs/backend-api.md).
-  Run the included one (Docker or plain Node), or point it at any server you like.
+- **Fake-photo check** (optional): one click on a listing scans up to **3 random photos** with
+  [Sightengine](https://sightengine.com)'s AI-image detector and shows the % chance each is AI-generated, so you can
+  spot a fake advertisement. Every scanned photo is cached, so it is never scanned twice.
+- **Cheap by design**: every answer is cached and a monthly limit caps the paid calls.
+- **Spanish by default**, English when your browser is in English.
 
 > Spain-focused: geocoding is restricted to Spain and the defaults assume Madrid (city suffix, map bias).
-> Change the *City suffix* option for another Spanish city.
+> Change the *City* option for another Spanish city.
+
+## Two ways to run it
+
+You pick one in the options (*Where it runs*). The fake-photo check has its own choice of the same two.
+
+| | **A. API keys in the browser** | **B. Your own server** |
+|---|---|---|
+| Set-up | Paste your Google Routes key (and optionally a Sightengine key) in the options | Run the included server (Docker or Node), paste its address in the options |
+| Needs | A Google Cloud key, nothing else | A machine that stays on (laptop, Raspberry Pi, VPS) and a Google key in the server's `.env` |
+| Where the keys live | In your browser, **encrypted with a passphrase** you choose ([details](#your-keys)) | On the server only; the browser never sees them |
+| Who calls Google / OpenStreetMap / Sightengine | Your browser, directly | The server, on the browser's behalf |
+| Cache and monthly limit | Per browser | Shared by everyone using the server, enforced server-side |
+| Sharing with friends | Each person needs their own key | They just type your server's address (optionally an access token) |
+| Best for | Just you, fastest to start | A household or a group, or if you don't want keys in the browser |
+
+Both modes show the same thing on the page and use the same cache rules. You can mix them: for example commute through
+your server and the photo check with your own Sightengine key.
 
 ## Screenshots
 
@@ -60,22 +72,54 @@ flowchart LR
     subgraph Browser
       P[idealista page] -- listing titles --> X[Extension]
     end
-    X -- "/geocode · /route · /tile" --> S[Your server]
+    X -. "A: direct, your keys" .-> G[Google Routes]
+    X -. "A: direct" .-> OSM[Nominatim / Photon / tiles]
+    X -. "A: direct, your keys" .-> SE[Sightengine]
+    X == "B: /geocode · /route · /tile · /ai-check" ==> S[Your server]
     S -- cached --> C[(Disk cache)]
-    S -- geocode --> OSM[Nominatim / Photon]
-    S -- "route (API key stays here)" --> G[Google Routes API]
-    S -- tiles --> T[OpenStreetMap tiles]
+    S --> OSM
+    S -- "API keys stay here" --> G
+    S --> SE
 ```
 
-The extension never calls Google (or anyone else) directly: it only knows your server's URL. The server holds the
-API key, caches everything, throttles the public OpenStreetMap services politely, and caps paid calls.
+In **A** the extension's background script calls the services itself, with an identifying `User-Agent` for
+OpenStreetMap as their policies require. In **B** it only knows your server's URL; the server holds the keys, caches
+everything, throttles the public OpenStreetMap services politely, and caps paid calls.
 
-## Quick start
+## Install the extension
 
-You need **Firefox 140+**, **Docker** (or Node 22) and a **Google Cloud API key** for the Routes API
-(or your own [router](#use-a-different-routing-engine)).
+- **Signed build (permanent):** download the `.xpi` from the
+  [latest release](https://github.com/SelfishCoconut/idealista-commute/releases/latest), then in Firefox open
+  `about:addons` → gear icon → *Install Add-on From File…*.
+- **Temporary (testing):** Firefox → `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → pick
+  `manifest.json` in this folder.
+- **Your own signed build:** see [Packaging](#packaging).
 
-### 1. Run the server
+Requires **Firefox 140+**.
+
+## Set-up A: API keys in the browser
+
+1. In the extension options, set your **work address** and **arrive-by** time.
+2. Under *Where it runs* choose **This browser** and paste your **Google Routes API key**.
+3. Choose a **passphrase** (8+ characters) and press **Save**. The keys are stored encrypted; you unlock them once per
+   browser session from the toolbar icon (a red `!` shows while locked).
+4. Reload your idealista tab.
+
+<details>
+<summary><b>Getting a Google key</b></summary>
+
+In [Google Cloud Console](https://console.cloud.google.com/): create a project → enable billing → enable the
+**Routes API** → create an API key and **restrict it to the Routes API**. Google's free monthly allowance is generous
+for personal use, and the *Routes per month* option makes the extension refuse any call beyond your limit.
+</details>
+
+For the fake-photo check, create a free [Sightengine](https://sightengine.com) account and choose **My Sightengine
+key** under *Fake-photo check*. Firefox asks once for permission to reach each service when you save.
+
+## Set-up B: your own server
+
+You need **Docker** (or Node 22) and a **Google Cloud API key** for the Routes API (or your own
+[router](#use-a-different-routing-engine)).
 
 ```bash
 git clone https://github.com/SelfishCoconut/idealista-commute.git
@@ -84,15 +128,10 @@ cp .env.example .env && chmod 600 .env     # put your key in GOOGLE_API_KEY=
 ./start.sh                                 # LAN-reachable on port 8085 (BIND=127.0.0.1 ./start.sh for local only)
 ```
 
-`start.sh` prints the URL to use. `./stop.sh` stops it; the container restarts after reboots.
-
-<details>
-<summary><b>Getting a Google key</b></summary>
-
-In [Google Cloud Console](https://console.cloud.google.com/): create a project → enable billing → enable the
-**Routes API** → create an API key and **restrict it to the Routes API**. Google's free monthly allowance is
-generous for personal use, and `GOOGLE_MONTHLY_LIMIT` (default 2000) makes the server refuse any call beyond it.
-</details>
+`start.sh` prints the URL to use. `./stop.sh` stops it; the container restarts after reboots. Then in the extension
+options choose **My server**, set your work address, paste the server URL (empty = this machine), press **Test server**
+and **Save**, and reload your idealista tab. For the photo check on the server, set `SIGHTENGINE_USER` and
+`SIGHTENGINE_SECRET` in `server/.env`.
 
 <details>
 <summary><b>Without Docker</b></summary>
@@ -104,21 +143,7 @@ No dependencies; Node 22+. Everything is configured through environment variable
 [`server/.env.example`](server/.env.example)).
 </details>
 
-### 2. Install the extension
-
-- **Signed build (permanent):** download the `.xpi` from the
-  [latest release](https://github.com/SelfishCoconut/idealista-commute/releases/latest), then in Firefox open
-  `about:addons` → gear icon → *Install Add-on From File…*.
-- **Temporary (testing):** Firefox → `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → pick
-  `manifest.json` in this folder.
-- **Your own signed build:** see [Packaging](#packaging).
-
-### 3. Configure
-
-Open the extension's options, set your **work address** and **arrive-by** time, press **Test server** and **Save**.
-Reload your idealista tab.
-
-### Your keys
+## Your keys
 
 If you use *This browser* mode or your own Sightengine key, the API keys are encrypted with a passphrase you choose
 (AES-256-GCM, key derived with PBKDF2, 600 000 rounds). Only ciphertext is written to disk; the decrypted keys live in
@@ -126,9 +151,9 @@ memory until the browser closes. When they are locked, the toolbar icon shows a 
 tries to open it when you load idealista), and the options page shows only an unlock form. Forget the passphrase and
 you simply re-enter the keys. With a server, the keys stay in the server's `.env` and none of this applies.
 
-## Self-hosting and sharing
+## Sharing a server
 
-The server runs anywhere Node or Docker does: a laptop, a Raspberry Pi, a VPS.
+The server (mode B) runs anywhere Node or Docker does: a laptop, a Raspberry Pi, a VPS.
 
 | Setup | Server URL in the extension |
 |---|---|
@@ -185,11 +210,13 @@ Implement the four endpoints in [`docs/backend-api.md`](docs/backend-api.md) in 
 ## Privacy
 
 - The extension reads listing titles (and the listing's own `/mapa` page, slowly, one at a time, like opening it
-  yourself) on idealista pages **you** open. Nothing is sent anywhere except your server.
-- Your **work address** and each listing's **location text** go to your server, which geocodes them with the public
-  OpenStreetMap services (Nominatim, then Photon). **Rounded coordinates** go to Google for routing. Tiles come from
-  OpenStreetMap through your server (or, in *This browser* mode, straight from OpenStreetMap with a `User-Agent` that
-  identifies this app, as their tile and Nominatim policies require; the tile URL is configurable in the options).
+  yourself) on idealista pages **you** open.
+- **Mode A (API keys):** your browser sends your **work address** and each listing's **location text** to OpenStreetMap
+  (Nominatim, then Photon) and **rounded coordinates** to Google Routes with your key; map tiles come straight from
+  OpenStreetMap, with a `User-Agent` that identifies this app as their policies require (the tile URL is configurable).
+- **Mode B (server):** the same data goes only to your server, which talks to those services for you.
+- **Photo check:** the addresses of up to three listing photos go to Sightengine, from your browser (your key) or via
+  your server.
 - No analytics, no accounts. Settings and caches stay in your browser's extension storage. See [PRIVACY.md](PRIVACY.md).
 
 ## Repository layout
@@ -237,5 +264,6 @@ Get the API credentials at <https://addons.mozilla.org/developers/addon/api/key/
 
 ## License
 
-[MIT](LICENSE). Leaflet is © Vladimir Agafonkin, BSD-2-Clause (see `lib/vendor/leaflet/LICENSE`). Map data ©
-OpenStreetMap contributors. Not affiliated with idealista or Google.
+[Beerware](LICENSE) (Revision 42): do whatever you want with it, keep the notice, and if we meet and you think it's
+worth it, buy me a beer. Leaflet is © Vladimir Agafonkin, BSD-2-Clause (see `lib/vendor/leaflet/LICENSE`). Map data ©
+OpenStreetMap contributors. Not affiliated with idealista, Google or Sightengine.

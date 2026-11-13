@@ -2,7 +2,7 @@
   "name": "idealista-commute",
   "version": "1.0.0",
   "description": "Firefox extension: transit commute time, map and sorting for idealista listings, in Spanish and English, with a self-hostable backend.",
-  "license": "MIT",
+  "license": "Beerware",
   "type": "module",
   "private": true,
   "repository": {
