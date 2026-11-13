@@ -11,7 +11,7 @@ const dl = (label, value) => {
   return d;
 };
 function showSource() {
-  const key = document.querySelector('input[name=aiSource]:checked').value === 'key';
+  const key = document.querySelector('input[name=aiSource]:checked').value === 'browser';
   $('aiKeyPanel').hidden = !key;
   $('aiServerHint').hidden = key;
 }
@@ -35,7 +35,9 @@ async function load() {
   $('sightengineSecret').value = settings.sightengineSecret || '';
   $('sightengineLimit').value = settings.sightengineLimit || 1500;
   $('pinFromMap').checked = settings.pinFromMap !== false;
-  document.querySelector(`input[name=aiSource][value=${settings.sightengineUser && settings.sightengineSecret ? 'key' : 'server'}]`).checked = true;
+  // Saved choice; before it existed, a saved key meant "browser".
+  const source = settings.aiSource || (settings.sightengineUser && settings.sightengineSecret ? 'browser' : 'server');
+  document.querySelector(`input[name=aiSource][value=${source}]`).checked = true;
   showSource(); showPreview();
   const month = new Date().toISOString().slice(0, 7);
   $('usage').replaceChildren(dl('Routes this month', usage.routes?.[month] || 0), dl('Photos scanned here', usage.ai?.[month] || 0));
@@ -68,15 +70,19 @@ $('test').addEventListener('click', async () => {
 });
 
 $('save').addEventListener('click', async () => {
+  const aiSource = document.querySelector('input[name=aiSource]:checked').value;
+  const sightUser = $('sightengineUser').value.trim(), sightSecret = $('sightengineSecret').value.trim();
+  if (aiSource === 'browser' && !(sightUser && sightSecret)) {
+    $('status').textContent = 'Not saved: enter your Sightengine API user and secret, or choose "My server".';
+    return;
+  }
   const pending = $('serverUrl').value.trim() ? grantServer($('serverUrl').value) : Promise.resolve('');
-  // Same click, same tick: the permission prompt for calling Sightengine directly (only when credentials are typed).
-  const useKey = document.querySelector('input[name=aiSource]:checked').value === 'key';
-  const sightUser = useKey ? $('sightengineUser').value.trim() : '', sightSecret = useKey ? $('sightengineSecret').value.trim() : '';
-  const sightPending = sightUser && sightSecret ? browser.permissions.request({ origins: [SIGHT_ORIGIN] }) : Promise.resolve(true);
+  // Same click, same tick: the permission prompt for calling Sightengine directly (browser source only).
+  const sightPending = aiSource === 'browser' ? browser.permissions.request({ origins: [SIGHT_ORIGIN] }) : Promise.resolve(true);
   const { settings = {} } = await browser.storage.local.get('settings');
   const serverUrl = await pending;
   if (!(await sightPending)) {
-    $('status').textContent = 'Not saved: permission to reach api.sightengine.com was refused (choose "My server" to skip it).';
+    $('status').textContent = 'Not saved: permission to reach api.sightengine.com was refused (choose "My server" instead).';
     return;
   }
   if (serverUrl === null) {
@@ -87,6 +93,7 @@ $('save').addEventListener('click', async () => {
     ...settings,
     serverUrl: serverUrl === DEFAULT_URL ? '' : serverUrl,
     accessToken: $('accessToken').value.trim(),
+    aiSource,
     sightengineUser: sightUser,
     sightengineSecret: sightSecret,
     sightengineLimit: Math.max(1, Number($('sightengineLimit').value) || 1500),

@@ -12,7 +12,8 @@ const DEFAULTS = {
   citySuffix: 'Madrid, España',
   pinFromMap: true, // read the listing's pin from idealista's /mapa page instead of geocoding its title
   debug: false,
-  sightengineUser: '', // optional: own Sightengine credentials = photo check straight from the browser (no server needed)
+  aiSource: 'server', // photo check: 'server' (the server's /ai-check) or 'browser' (own Sightengine key below, no server needed)
+  sightengineUser: '',
   sightengineSecret: '',
   sightengineLimit: 1500, // photos per month in this browser
 };
@@ -95,10 +96,11 @@ async function mapFor(route) {
   return buildMapSvg(route, (z, x, y) => backend.tileDataUrl(s.serverUrl, z, x, y, s.accessToken));
 }
 
-// Photo check. With Sightengine credentials in the options the browser calls Sightengine itself; otherwise the
-// server's POST /ai-check does (credentials on the server, shared cache and cap). Same answer shape either way.
+// Photo check. The options say where it runs: 'browser' calls Sightengine directly with the user's own key,
+// 'server' uses POST /ai-check (credentials on the server, shared cache and cap). Same answer shape either way.
 async function aiCheck(images, s) {
-  if (!(s.sightengineUser && s.sightengineSecret)) return backend.aiCheck(images, s);
+  if (s.aiSource !== 'browser') return backend.aiCheck(images, s);
+  if (!(s.sightengineUser && s.sightengineSecret)) throw Object.assign(new Error('Photo check is set to use your own Sightengine key, but none is saved. Add it in the options.'), { fatal: true });
   const month = new Date().toISOString().slice(0, 7);
   const { usage = {} } = await browser.storage.local.get('usage');
   usage.ai ||= {};
