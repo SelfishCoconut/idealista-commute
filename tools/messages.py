@@ -57,7 +57,7 @@ M = {
 'progPages': ('Incluye $1 páginas más de resultados', 'Includes $1 more result pages'),
 'progPagesLoad': ('Páginas de resultados: $1 de $2', 'Result pages: $1 of $2'),
 'progLoaded': ('Cargados $1 de $2 anuncios de la búsqueda', 'Loaded $1 of $2 listings of this search'),
-'progOthersOnSort': ('Las demás páginas se cargan al ordenar por tiempo', 'The other pages are loaded when you sort by commute'),
+'progOthersOnSort': ('Las demás páginas se cargan en segundo plano', 'The other pages are being loaded in the background'),
 'progOthersOff': ('Las demás páginas no se incluyen (actívalo en las opciones)', 'The other pages are not included (turn it on in the options)'),
 'progOthersIn': ('Incluye las demás páginas', 'Includes the other pages'),
 'progDone': ('Todo calculado', 'All calculated'),

@@ -246,7 +246,7 @@
     }
   },
   "progOthersOnSort": {
-    "message": "The other pages are loaded when you sort by commute"
+    "message": "The other pages are being loaded in the background"
   },
   "progOthersOff": {
     "message": "The other pages are not included (turn it on in the options)"

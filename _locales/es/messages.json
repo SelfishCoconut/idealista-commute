@@ -246,7 +246,7 @@
     }
   },
   "progOthersOnSort": {
-    "message": "Las demás páginas se cargan al ordenar por tiempo"
+    "message": "Las demás páginas se cargan en segundo plano"
   },
   "progOthersOff": {
     "message": "Las demás páginas no se incluyen (actívalo en las opciones)"
