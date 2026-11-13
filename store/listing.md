@@ -11,7 +11,7 @@ license, reviewer notes) in the shape the AMO API wants:
 npx web-ext sign --channel=listed --amo-metadata=store/amo-metadata.json --approval-timeout=0 --artifacts-dir web-ext-artifacts
 ```
 Listed versions are reviewed by Mozilla, so no signed `.xpi` comes back right away. Screenshots can't be sent this way:
-add `store/screenshots/*.png` in the developer hub afterwards. Regenerate the JSON if you edit the text below.
+add `store/screenshots/*.png` in the developer hub afterwards. AMO's Spanish locale code is `es-ES`, and tags must come from AMO's fixed list, so the JSON sets none: pick them in the developer hub. Update the JSON if you edit the text below.
 
 ## Name
 - es: Tiempo al trabajo para Idealista

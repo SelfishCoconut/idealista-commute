@@ -67,24 +67,61 @@ your server and the photo check with your own Sightengine key.
 
 ## How it works
 
+### A. API keys in the browser
+
+Everything runs inside Firefox. The keys sit encrypted on disk and are decrypted into memory only after you unlock.
+
 ```mermaid
 flowchart LR
-    subgraph Browser
-      P[idealista page] -- listing titles --> X[Extension]
+    subgraph FF["Your Firefox"]
+        direction TB
+        PAGE["idealista page<br/>(listing titles)"]
+        EXT["Extension<br/>background script"]
+        CACHE[("Cache<br/>storage.local")]
+        VAULT[["Key vault<br/>AES-256-GCM"]]
+        MEM["Decrypted keys<br/>memory only"]
+        POP["Toolbar popup<br/>passphrase"]
+        PAGE -->|"titles"| EXT
+        EXT <-->|"answers"| CACHE
+        POP -->|"unlock"| VAULT
+        VAULT -->|"decrypt"| MEM
+        MEM -.->|"keys"| EXT
     end
-    X -. "A: direct, your keys" .-> G[Google Routes]
-    X -. "A: direct" .-> OSM[Nominatim / Photon / tiles]
-    X -. "A: direct, your keys" .-> SE[Sightengine]
-    X == "B: /geocode · /route · /tile · /ai-check" ==> S[Your server]
-    S -- cached --> C[(Disk cache)]
-    S --> OSM
-    S -- "API keys stay here" --> G
-    S --> SE
+    EXT -->|"address, rounded coordinates<br/>your Google key"| GOOGLE["Google Routes"]
+    EXT -->|"address text<br/>identifying User-Agent"| OSM["OpenStreetMap<br/>Nominatim, Photon, tiles"]
+    EXT -.->|"3 photo URLs<br/>your Sightengine key"| SIGHT["Sightengine<br/>(optional)"]
 ```
 
-In **A** the extension's background script calls the services itself, with an identifying `User-Agent` for
-OpenStreetMap as their policies require. In **B** it only knows your server's URL; the server holds the keys, caches
-everything, throttles the public OpenStreetMap services politely, and caps paid calls.
+### B. Your own server
+
+The extension only knows your server's address. The server holds the keys, shares one cache and enforces the limits.
+
+```mermaid
+flowchart LR
+    subgraph FF["Your Firefox"]
+        direction TB
+        PAGE["idealista page<br/>(listing titles)"]
+        EXT["Extension<br/>background script"]
+        CACHE[("Browser cache")]
+        PAGE -->|"titles"| EXT
+        EXT <-->|"answers"| CACHE
+    end
+    subgraph SRV["Your server (Docker or Node)"]
+        direction TB
+        GW["Gateway<br/>/geocode /route /tile /ai-check"]
+        DISK[("Shared disk cache<br/>monthly caps")]
+        ENV[["server/.env<br/>API keys"]]
+        GW <-->|"cached answers"| DISK
+        ENV -.->|"keys"| GW
+    end
+    EXT ==>|"HTTPS or LAN<br/>optional access token"| GW
+    GW -->|"rounded coordinates"| GOOGLE["Google Routes"]
+    GW -->|"throttled, 1 request per second"| OSM["OpenStreetMap<br/>Nominatim, Photon, tiles"]
+    GW -.->|"photo URLs"| SIGHT["Sightengine<br/>(optional)"]
+```
+
+In both modes the page itself is only read for listing titles, the listing's own map page and its photo addresses. Nothing
+on your idealista session is sent anywhere.
 
 ## Install the extension
 
