@@ -59,7 +59,9 @@
 .icm-badge.icm-badge .icm-busy { opacity: .6; }
 
 /* AI-generated photo check: a field in the commute row, plus thumbnails under it on the listing page */
-.icm-badge.icm-badge .icm-aifield { display: inline-flex; align-items: baseline; gap: 4px; padding-left: 8px; border-left: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.icm-badge.icm-badge .icm-aifield { display: inline-flex; align-items: baseline; gap: 4px; margin-left: auto; }
+.icm-badge.icm-badge .icm-aifield + .icm-chev { margin-left: 4px; }
+.icm-badge.icm-badge .icm-aifield:empty + .icm-chev { margin-left: auto; }
 .icm-badge.icm-badge .icm-aifield:empty { display: none; }
 .icm-badge.icm-badge .icm-aifield.icm-ai-bad .icm-min { color: #b42318; }
 .icm-badge.icm-badge .icm-aifield.icm-ai-warn .icm-min { color: #a15c07; }

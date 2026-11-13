@@ -2,56 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Idealista Commute options</title>
-<style>
-  body { font: 15px/1.4 system-ui, sans-serif; max-width: 560px; margin: 24px auto; padding: 0 16px; }
-  label { display: block; margin-top: 14px; font-weight: 600; }
-  input, select { width: 100%; padding: 6px; box-sizing: border-box; font: inherit; }
-  small { color: #667; font-weight: 400; }
-  button { margin-top: 18px; padding: 8px 16px; font: inherit; }
-  #status, #usage { margin-top: 12px; color: #276; }
-  fieldset { margin-top: 18px; }
-</style>
+<link rel="stylesheet" href="options.css">
 </head>
 <body>
-<h1>Idealista Commute</h1>
+<main>
+  <h1>Idealista Commute</h1>
+  <p class="sub">Commute time and a fake-photo check on every idealista listing</p>
 
-<label>Work address <small>(street, city)</small>
-  <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid">
-</label>
-<label>Arrive by <small>(next weekday at this time)</small>
-  <input id="arriveBy" type="time" value="09:00">
-</label>
-<label>City suffix <small>(added to listing locations that don't name the city)</small>
-  <input id="citySuffix" value="Madrid, España">
-</label>
+  <div class="preview" aria-label="Preview">
+    <div class="row">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M4 11h16"/><path d="M8 21l2-3M16 21l-2-3"/></svg>
+      <strong>28 min</strong><span class="meta">1 change</span>
+      <span class="ai"><strong>12%</strong> <span class="meta">AI</span></span>
+    </div>
+    <p class="cap" id="previewCap">Example of the row added to each listing</p>
+  </div>
 
-<label>Server URL <small>(your backend: leave empty for this machine, or type a self-hosted / shared server's address,
-  e.g. <code>192.168.1.50</code> or <code>https://commute.example.org</code>)</small>
-  <input id="serverUrl" placeholder="http://127.0.0.1:8085" autocomplete="off">
-</label>
-<label>Access token <small>(only if the server sets <code>ACCESS_TOKEN</code>; stored in this browser)</small>
-  <input id="accessToken" type="password" autocomplete="off">
-</label>
-<fieldset>
-  <legend>AI photo check <small>(optional, pick one)</small></legend>
-  <p><small>Either set <code>SIGHTENGINE_USER</code> / <code>SIGHTENGINE_SECRET</code> on your server, or type your own
-  <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> credentials here and the browser will
-  call Sightengine directly (no server needed; the secret is stored in plain text in this browser profile, so use it only on a
-  machine you trust, and never share a key you want to keep private). Credentials here take priority.</small></p>
-  <label>Sightengine API user <input id="sightengineUser" autocomplete="off"></label>
-  <label>Sightengine API secret <input id="sightengineSecret" type="password" autocomplete="off"></label>
-  <label>Photos per month in this browser <input id="sightengineLimit" type="number" min="1" value="1500"></label>
-</fieldset>
-<button id="test" type="button">Test server</button> <span id="testResult"></span>
+  <section>
+    <h2>Commute</h2>
+    <label class="field"><span>Work address</span>
+      <input id="workAddress" placeholder="Paseo de la Castellana 100, Madrid" autocomplete="off">
+    </label>
+    <div class="grid">
+      <label class="field"><span>Arrive by</span>
+        <input id="arriveBy" type="time" value="09:00">
+        <p class="hint">Planned for the next weekday</p>
+      </label>
+      <label class="field"><span>City</span>
+        <input id="citySuffix" placeholder="Madrid, España" autocomplete="off">
+        <p class="hint">Added to listings that don't name one</p>
+      </label>
+    </div>
+    <label class="switch"><input id="pinFromMap" type="checkbox">
+      <span><b>Use idealista's exact pin</b><p class="hint">Reads each listing's map page, slowly. Falls back to the address if idealista objects</p></span>
+    </label>
+  </section>
 
-<label><input id="pinFromMap" type="checkbox" style="width:auto"> Use the listing's pin from idealista's map page when available <small>(exact location, avoids street-name mix-ups; reads each listing's map page slowly, one at a time, and falls back to the address if idealista objects)</small></label>
-<label><input id="debug" type="checkbox" style="width:auto"> Log raw route responses to the console (debugging)</label>
+  <section>
+    <h2>Server</h2>
+    <label class="field"><span>Server URL</span>
+      <input id="serverUrl" class="mono" placeholder="http://127.0.0.1:8085" autocomplete="off" spellcheck="false">
+      <p class="hint">Leave empty for this machine, or enter an address such as <code>192.168.1.50</code> or <code>https://commute.example.org</code></p>
+    </label>
+    <label class="field"><span>Access token</span>
+      <input id="accessToken" class="mono" type="password" autocomplete="off">
+      <p class="hint">Only if the server sets <code>ACCESS_TOKEN</code></p>
+    </label>
+    <div class="test"><button id="test" type="button" class="btn">Test server</button><span class="dot" id="testDot"></span><span class="msg" id="testResult"></span></div>
+  </section>
 
-<button id="save">Save</button>
-<button id="clear">Clear cache</button>
-<div id="status"></div>
-<div id="usage"></div>
+  <section>
+    <h2>Fake-photo check</h2>
+    <div class="seg" role="radiogroup" aria-label="Photo check source">
+      <label class="opt"><input type="radio" name="aiSource" value="server" checked>My server</label>
+      <label class="opt"><input type="radio" name="aiSource" value="key">My Sightengine key</label>
+    </div>
+    <p class="hint" id="aiServerHint" style="margin-top:12px">The server holds the credentials (<code>SIGHTENGINE_USER</code>, <code>SIGHTENGINE_SECRET</code>) and shares one cache and monthly limit.</p>
+    <div class="panel" id="aiKeyPanel" hidden>
+      <div class="grid">
+        <label class="field"><span>API user</span><input id="sightengineUser" class="mono" autocomplete="off" spellcheck="false"></label>
+        <label class="field"><span>API secret</span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
+      </div>
+      <label class="field"><span>Photos per month</span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
+      <div class="note">The browser calls <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> directly, no server needed. The secret is stored unencrypted in this browser profile, so use it only on a machine you trust.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Data</h2>
+    <dl class="stats" id="usage"></dl>
+    <button id="clear" type="button" class="btn">Clear cache</button>
+  </section>
+</main>
+
+<div class="bar"><div><span id="status" role="status"></span><button id="save" type="button" class="primary">Save</button></div></div>
 <script type="module" src="options.js"></script>
 </body>
 </html>

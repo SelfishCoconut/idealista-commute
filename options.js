@@ -5,6 +5,25 @@ import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
 
 const $ = (id) => document.getElementById(id);
 
+const dl = (label, value) => {
+  const d = document.createElement('div'), t = document.createElement('dt'), v = document.createElement('dd');
+  t.textContent = label; v.textContent = value; d.append(t, v);
+  return d;
+};
+function showSource() {
+  const key = document.querySelector('input[name=aiSource]:checked').value === 'key';
+  $('aiKeyPanel').hidden = !key;
+  $('aiServerHint').hidden = key;
+}
+function showPreview() {
+  const w = $('workAddress').value.trim(), t = $('arriveBy').value;
+  $('previewCap').textContent = w ? `Example of the row added to each listing, to ${w}${t ? ' by ' + t : ''}` : 'Example of the row added to each listing';
+}
+function setTest(kind, text) {
+  $('testDot').className = 'dot' + (kind ? ' ' + kind : '');
+  $('testResult').textContent = text;
+}
+
 async function load() {
   const { settings = {}, usage = {} } = await browser.storage.local.get(['settings', 'usage']);
   $('workAddress').value = settings.workAddress || '';
@@ -15,13 +34,14 @@ async function load() {
   $('sightengineUser').value = settings.sightengineUser || '';
   $('sightengineSecret').value = settings.sightengineSecret || '';
   $('sightengineLimit').value = settings.sightengineLimit || 1500;
-  $('debug').checked = !!settings.debug;
   $('pinFromMap').checked = settings.pinFromMap !== false;
+  document.querySelector(`input[name=aiSource][value=${settings.sightengineUser && settings.sightengineSecret ? 'key' : 'server'}]`).checked = true;
+  showSource(); showPreview();
   const month = new Date().toISOString().slice(0, 7);
-  $('usage').textContent = 'Route requests this month: ' +
-    (usage.routes?.[month] || 0) + ' (this browser; cached answers are free)' +
-    (usage.ai?.[month] ? `; photos scanned directly: ${usage.ai[month]}` : '');
+  $('usage').replaceChildren(dl('Routes this month', usage.routes?.[month] || 0), dl('Photos scanned here', usage.ai?.[month] || 0));
 }
+for (const id of ['workAddress', 'arriveBy']) $(id).addEventListener('input', showPreview);
+for (const r of document.querySelectorAll('input[name=aiSource]')) r.addEventListener('change', showSource);
 
 // Firefox only shows the permission prompt if this is called straight from the click handler,
 // so callers invoke it before any other await. Returns the normalized URL, or null if refused/invalid.
@@ -34,30 +54,29 @@ async function grantServer(raw) {
 }
 
 $('test').addEventListener('click', async () => {
-  const out = $('testResult');
-  out.textContent = 'Testing…';
-  const pending = grantServer($('serverUrl').value);
-  const url = await pending;
-  if (!url) { out.textContent = '✗ invalid address, or permission refused'; return; }
+  setTest('busy', 'Testing…');
+  const url = await grantServer($('serverUrl').value);
+  if (!url) { setTest('bad', 'Invalid address, or permission refused'); return; }
   try {
     const j = await health(url);
-    out.textContent = j.routing
-      ? `✓ connected (routing: ${j.routing}, ${j.paidCallsThisMonth ?? 0}/${j.monthlyLimit ?? '∞'} paid calls this month, AI photo check ${j.aiCheck ? `on (${j.aiCallsThisMonth ?? 0}/${j.aiMonthlyLimit ?? '∞'} photos this month)` : 'off'}, ${j.cache?.entries ?? 0} cached entries)`
-      : '✗ reached the server but it has no routing backend configured (set GOOGLE_API_KEY in server/.env)';
+    const ai = j.aiCheck ? `photo check on (${j.aiCallsThisMonth ?? 0}/${j.aiMonthlyLimit ?? '∞'} this month)` : 'photo check not set up';
+    if (j.routing) setTest('ok', `Connected · ${j.routing} routing, ${j.paidCallsThisMonth ?? 0}/${j.monthlyLimit ?? '∞'} calls this month · ${ai}`);
+    else setTest('bad', 'Reached the server, but it has no routing backend (set GOOGLE_API_KEY in server/.env)');
   } catch (e) {
-    out.textContent = `✗ cannot reach ${url}: ${e.name}: ${e.message}`;
+    setTest('bad', `Cannot reach ${url}: ${e.message}`);
   }
 });
 
 $('save').addEventListener('click', async () => {
   const pending = $('serverUrl').value.trim() ? grantServer($('serverUrl').value) : Promise.resolve('');
   // Same click, same tick: the permission prompt for calling Sightengine directly (only when credentials are typed).
-  const sightUser = $('sightengineUser').value.trim(), sightSecret = $('sightengineSecret').value.trim();
+  const useKey = document.querySelector('input[name=aiSource]:checked').value === 'key';
+  const sightUser = useKey ? $('sightengineUser').value.trim() : '', sightSecret = useKey ? $('sightengineSecret').value.trim() : '';
   const sightPending = sightUser && sightSecret ? browser.permissions.request({ origins: [SIGHT_ORIGIN] }) : Promise.resolve(true);
   const { settings = {} } = await browser.storage.local.get('settings');
   const serverUrl = await pending;
   if (!(await sightPending)) {
-    $('status').textContent = 'Not saved: permission to reach api.sightengine.com was refused (clear the Sightengine fields to use the server instead).';
+    $('status').textContent = 'Not saved: permission to reach api.sightengine.com was refused (choose "My server" to skip it).';
     return;
   }
   if (serverUrl === null) {
@@ -74,11 +93,10 @@ $('save').addEventListener('click', async () => {
     workAddress: $('workAddress').value.trim(),
     arriveBy: $('arriveBy').value || '09:00',
     citySuffix: $('citySuffix').value.trim(),
-    debug: $('debug').checked,
     pinFromMap: $('pinFromMap').checked,
   };
   await browser.storage.local.set({ settings: next });
-  $('status').textContent = 'Saved. Reload your idealista tab.';
+  $('status').textContent = 'Saved. Reload your idealista tab to apply.';
 });
 
 $('clear').addEventListener('click', async () => {
