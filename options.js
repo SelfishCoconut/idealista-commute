@@ -2,9 +2,12 @@
 import { normalizeServerUrl, DEFAULT_URL } from './lib/url.js';
 import { health } from './lib/backend.js';
 import { ORIGIN as SIGHT_ORIGIN } from './lib/sightengine.js';
+import { vaultState, unlock, saveSecrets, SECRET_FIELDS } from './lib/vault.js';
 import { ORIGINS as DIRECT_ORIGINS, validTileUrl } from './lib/direct.js';
 
 const $ = (id) => document.getElementById(id);
+let vault = { exists: false, unlocked: false, secrets: {} };
+let legacy = false; // keys still sitting unencrypted in settings from before the vault existed
 
 const dl = (label, value) => {
   const d = document.createElement('div'), t = document.createElement('dt'), v = document.createElement('dd');
@@ -36,19 +39,28 @@ function setTest(kind, text) {
 
 async function load() {
   const { settings = {}, usage = {} } = await browser.storage.local.get(['settings', 'usage']);
+  vault = await vaultState();
+  const locked = vault.exists && !vault.unlocked;
+  // While locked nothing else is shown: the settings stay behind the passphrase.
+  $('gate').hidden = !locked; $('app').hidden = locked; $('bar').hidden = locked;
+  if (locked) { $('gatePass').focus(); return; }
+  // Keys come from the unlocked vault; a plaintext copy in settings is from before encryption existed and gets encrypted on the next save.
+  legacy = !vault.exists && SECRET_FIELDS.some((f) => settings[f]);
+  const sec = vault.exists ? vault.secrets : settings;
+  for (const f of SECRET_FIELDS) { $(f).value = sec[f] || ''; $(f).disabled = locked; }
+  $('vaultHint').textContent = locked ? 'Your keys are locked.'
+    : vault.exists ? 'Keys are encrypted. To change them, enter the passphrase here when saving.'
+    : 'Choose a passphrase (8+ characters) to encrypt your API keys. You will unlock it from the toolbar icon once per browser session. It cannot be recovered: if you forget it, re-enter the keys.';
   $('workAddress').value = settings.workAddress || '';
   $('arriveBy').value = settings.arriveBy || '09:00';
   $('citySuffix').value = settings.citySuffix || 'Madrid, España';
   $('serverUrl').value = settings.serverUrl || '';
   $('accessToken').value = settings.accessToken || '';
-  $('sightengineUser').value = settings.sightengineUser || '';
-  $('sightengineSecret').value = settings.sightengineSecret || '';
   $('sightengineLimit').value = settings.sightengineLimit || 1500;
   $('pinFromMap').checked = settings.pinFromMap !== false;
   // Saved choice; before it existed, a saved key meant "browser".
   const source = settings.aiSource || (settings.sightengineUser && settings.sightengineSecret ? 'browser' : 'server');
   document.querySelector(`input[name=aiSource][value=${source}]`).checked = true;
-  $('googleKey').value = settings.googleKey || '';
   $('googleLimit').value = settings.googleLimit || 2000;
   $('tileUrl').value = settings.tileUrl || '';
   document.querySelector(`input[name=backend][value=${settings.backend === 'browser' ? 'browser' : 'server'}]`).checked = true;
@@ -86,14 +98,22 @@ $('test').addEventListener('click', async () => {
 
 $('save').addEventListener('click', async () => {
   const aiSource = sourceChoice();
-  const backend = backendChoice(), googleKey = $('googleKey').value.trim();
-  if (backend === 'browser' && !googleKey) {
+  const locked = vault.exists && !vault.unlocked;
+  const backend = backendChoice(), googleKey = locked ? vault.secrets.googleKey || '' : $('googleKey').value.trim();
+  if (!locked && backend === 'browser' && !googleKey) {
     $('status').textContent = 'Not saved: enter your Google Routes API key, or choose "My server".';
     return;
   }
-  const sightUser = $('sightengineUser').value.trim(), sightSecret = $('sightengineSecret').value.trim();
-  if (aiSource === 'browser' && !(sightUser && sightSecret)) {
+  const sightUser = locked ? '' : $('sightengineUser').value.trim(), sightSecret = locked ? '' : $('sightengineSecret').value.trim();
+  if (!locked && aiSource === 'browser' && !(sightUser && sightSecret)) {
     $('status').textContent = 'Not saved: enter your Sightengine API user and secret, or choose "My server".';
+    return;
+  }
+  const secrets = { googleKey, sightengineUser: sightUser, sightengineSecret: sightSecret };
+  const pass = $('passphrase').value;
+  const changed = !locked && SECRET_FIELDS.some((f) => (secrets[f] || '') !== (vault.exists ? vault.secrets[f] || '' : ''));
+  if ((changed || legacy) && Object.values(secrets).some(Boolean) && pass.length < 8) {
+    $('status').textContent = 'Not saved: enter a passphrase of at least 8 characters to encrypt the keys.';
     return;
   }
   const tileUrl = $('tileUrl').value.trim();
@@ -121,21 +141,25 @@ $('save').addEventListener('click', async () => {
     serverUrl: !needServer ? settings.serverUrl || '' : serverUrl === DEFAULT_URL ? '' : serverUrl, // untouched when nothing uses the server
     accessToken: $('accessToken').value.trim(),
     backend,
-    googleKey,
     tileUrl,
     googleLimit: Math.max(1, Number($('googleLimit').value) || 2000),
     aiSource,
-    sightengineUser: sightUser,
-    sightengineSecret: sightSecret,
     sightengineLimit: Math.max(1, Number($('sightengineLimit').value) || 1500),
     workAddress: $('workAddress').value.trim(),
     arriveBy: $('arriveBy').value || '09:00',
     citySuffix: $('citySuffix').value.trim(),
     pinFromMap: $('pinFromMap').checked,
   };
+  for (const f of SECRET_FIELDS) delete next[f]; // never into settings; they go to the encrypted vault
   await browser.storage.local.set({ settings: next });
+  if (changed || legacy) {
+    try { await saveSecrets(secrets, pass); } catch (e) { $('status').textContent = `Settings saved, but the keys were not: ${e.message}`; return; }
+    $('passphrase').value = '';
+  }
+  await load();
   $('status').textContent = 'Saved. Reload your idealista tab to apply.';
 });
+
 
 $('clear').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);
@@ -143,5 +167,15 @@ $('clear').addEventListener('click', async () => {
   await browser.storage.local.remove(drop);
   $('status').textContent = `Cleared ${drop.length} cached entries.`;
 });
+
+$('gate').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('gateErr').textContent = '';
+  try { await unlock($('gatePass').value); $('gatePass').value = ''; await load(); }
+  catch (err) { $('gateErr').textContent = err.message; }
+});
+
+// Unlocking or locking from the toolbar popup or an idealista tab updates this page too.
+browser.storage.onChanged.addListener((_c, area) => { if (area === 'session') load(); });
 
 load();

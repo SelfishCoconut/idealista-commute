@@ -11,6 +11,14 @@
   <h1>Idealista Commute</h1>
   <p class="sub">Commute time and a fake-photo check on every idealista listing</p>
 
+  <form id="gate" hidden>
+    <h2>Locked</h2>
+    <p class="hint">Your API keys are encrypted. Enter the passphrase to open the settings; it stays unlocked until the browser closes.</p>
+    <label class="field"><span>Passphrase</span><input id="gatePass" type="password" autocomplete="off"></label>
+    <div class="test"><button type="submit" class="primary">Unlock</button><span class="msg" id="gateErr" role="alert"></span></div>
+  </form>
+
+  <div id="app">
   <div class="preview" aria-label="Preview">
     <div class="row">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path d="M4 11h16"/><path d="M8 21l2-3M16 21l-2-3"/></svg>
@@ -65,7 +73,7 @@
       </div>
       <label class="field"><span>Map tiles URL <small>(optional)</small></span><input id="tileUrl" class="mono" placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" autocomplete="off" spellcheck="false">
         <p class="hint">Leave empty for OpenStreetMap, or use another provider's template with <code>{z}</code> <code>{x}</code> <code>{y}</code>. The attribution shown stays OpenStreetMap's: add your provider's if it requires one</p></label>
-      <div class="note">No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored unencrypted in this browser profile, answers are cached here only, and the monthly limit is counted per browser.</div>
+      <div class="note">No server needed: this browser calls Google Routes with your key, and OpenStreetMap (Nominatim, Photon, map tiles) directly. Restrict the key to the Routes API in Google Cloud. It is stored encrypted with your passphrase (see Key passphrase), answers are cached here only, and the monthly limit is counted per browser.</div>
     </div>
   </section>
 
@@ -82,8 +90,14 @@
         <label class="field"><span>API secret</span><input id="sightengineSecret" class="mono" type="password" autocomplete="off"></label>
       </div>
       <label class="field"><span>Photos per month</span><input id="sightengineLimit" type="number" min="1" value="1500"></label>
-      <div class="note">The browser calls <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> directly, no server needed. The secret is stored unencrypted in this browser profile, so use it only on a machine you trust.</div>
+      <div class="note">The browser calls <a href="https://sightengine.com" target="_blank" rel="noopener noreferrer">Sightengine</a> directly, no server needed. The credentials are stored encrypted with your passphrase (see Key passphrase).</div>
     </div>
+  </section>
+
+  <section id="vaultSection">
+    <h2>Key passphrase</h2>
+    <label class="field"><span>Passphrase</span><input id="passphrase" type="password" autocomplete="off"></label>
+    <p class="hint" id="vaultHint"></p>
   </section>
 
   <section>
@@ -91,9 +105,10 @@
     <dl class="stats" id="usage"></dl>
     <button id="clear" type="button" class="btn">Clear cache</button>
   </section>
+  </div>
 </main>
 
-<div class="bar"><div><span id="status" role="status"></span><button id="save" type="button" class="primary">Save</button></div></div>
+<div class="bar" id="bar"><div><span id="status" role="status"></span><button id="save" type="button" class="primary">Save</button></div></div>
 <script type="module" src="options.js"></script>
 </body>
 </html>

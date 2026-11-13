@@ -48,7 +48,8 @@
     }
   ],
   "action": {
-    "default_title": "Idealista Commute options"
+    "default_title": "Idealista Commute",
+    "default_popup": "popup.html"
   },
   "options_ui": {
     "page": "options.html",

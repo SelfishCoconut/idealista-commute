@@ -525,6 +525,21 @@
     document.querySelectorAll(CARD).forEach((c) => { if (!seen.has(c)) io.observe(c); });
     if (!installTimer) installTimer = setTimeout(install, 500);
   }
+  // Saved API keys are locked until the passphrase is typed once per browser session. The real toolbar popup is
+  // opened for it. Firefox may only allow that from a user action, so if the first try is refused it is
+  // retried on your first click or key press on the page.
+  async function promptUnlock() {
+    try { if (!(await ask({ type: 'needsUnlock' }))) return; } catch { return; }
+    if (await ask({ type: 'openPopup' }).catch(() => false)) return;
+    const retry = async () => {
+      document.removeEventListener('pointerdown', retry, true); document.removeEventListener('keydown', retry, true);
+      if (await ask({ type: 'needsUnlock' }).catch(() => false)) ask({ type: 'openPopup' }).catch(() => {});
+    };
+    document.addEventListener('pointerdown', retry, true); document.addEventListener('keydown', retry, true);
+  }
+  browser.runtime.onMessage.addListener((m) => { if (m?.type === 'unlocked') location.reload(); });
+  promptUnlock();
+
   scan();
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
 })();

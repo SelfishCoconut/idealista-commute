@@ -4,6 +4,7 @@ import * as backend from './lib/backend.js';
 import { buildMapSvg } from './lib/map.js';
 import * as sightengine from './lib/sightengine.js';
 import * as direct from './lib/direct.js';
+import { vaultState } from './lib/vault.js';
 
 const DEFAULTS = {
   serverUrl: '', // empty = http://127.0.0.1:8085 (this machine); or any server speaking docs/backend-api.md
@@ -30,7 +31,9 @@ const th = (k, ms, parallel = false) => (throttles.has(k) ? throttles.get(k) : t
 
 async function getSettings() {
   const s = await browser.storage.local.get('settings');
-  return { ...DEFAULTS, ...(s.settings || {}) };
+  // Keys live encrypted in the vault; storage.session holds them once unlocked. A plaintext copy in settings is pre-vault legacy.
+  const v = await vaultState();
+  return { ...DEFAULTS, ...(s.settings || {}), ...v.secrets, locked: v.exists && !v.unlocked };
 }
 
 async function cached(key, producer, { cacheNull = true } = {}) {
@@ -76,6 +79,7 @@ async function geocode(query, s) {
 
 async function commute(title, pin) {
   const s = await getSettings();
+  if (s.locked && s.backend === 'browser') return { status: 'error', fatal: true, message: 'API keys are locked: open the extension options and enter your passphrase.' };
   if (!s.workAddress) return { status: 'setup', message: 'Set your work address in the extension options.' };
   const addr = parseAddress(title, s.citySuffix);
   if (!addr) return { status: 'noaddr' };
@@ -116,6 +120,7 @@ async function mapFor(route) {
 // 'server' uses POST /ai-check (credentials on the server, shared cache and cap). Same answer shape either way.
 async function aiCheck(images, s) {
   if (s.aiSource !== 'browser') return backend.aiCheck(images, s);
+  if (s.locked) throw Object.assign(new Error('API keys are locked: open the extension options and enter your passphrase.'), { fatal: true });
   if (!(s.sightengineUser && s.sightengineSecret)) throw Object.assign(new Error('Photo check is set to use your own Sightengine key, but none is saved. Add it in the options.'), { fatal: true });
   const month = new Date().toISOString().slice(0, 7);
   const { usage = {} } = await browser.storage.local.get('usage');
@@ -146,9 +151,32 @@ if (browser.webRequest?.onBeforeSendHeaders) {
   }, { urls: direct.OSM_URLS }, ['blocking', 'requestHeaders']);
 }
 
-browser.action.onClicked.addListener(() => browser.runtime.openOptionsPage());
+// Toolbar badge: a red "!" while saved keys are locked. The popup is where they get unlocked.
+async function updateBadge() {
+  const v = await vaultState();
+  const locked = v.exists && !v.unlocked;
+  await browser.action.setBadgeText({ text: locked ? '!' : '' });
+  if (locked) await browser.action.setBadgeBackgroundColor({ color: '#b42318' });
+  await browser.action.setTitle({ title: locked ? 'Idealista Commute: API keys locked, click to unlock' : 'Idealista Commute' });
+}
+browser.storage.onChanged.addListener((c, area) => {
+  if (area === 'session' || area === 'local') updateBadge();
+  // Idealista tabs reload once the keys are unlocked, so their listings get the commute.
+  if (area === 'session' && c.secrets?.newValue && !c.secrets.oldValue) {
+    browser.tabs.query({}).then((tabs) => tabs.forEach((t) => browser.tabs.sendMessage(t.id, { type: 'unlocked' }).catch(() => {})));
+  }
+});
+updateBadge();
+
+// True when saved keys are locked and a feature that needs them is switched on.
+async function needsUnlock() {
+  const s = await getSettings();
+  return !!s.locked && (s.backend === 'browser' || s.aiSource === 'browser');
+}
 
 browser.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === 'needsUnlock') return needsUnlock();
+  if (msg?.type === 'openPopup') return browser.action.openPopup().then(() => true, () => false);
   if (msg?.type === 'openOptions') return browser.runtime.openOptionsPage();
   if (msg?.type === 'tile') return getSettings().then((st) => tileFor(st, msg.z, msg.x, msg.y)).then((url) => ({ url })).catch((e) => ({ error: e.message }));
   if (msg?.type === 'map') return mapFor(msg.route).then((svg) => ({ svg })).catch((e) => ({ error: e.message }));

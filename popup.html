@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Idealista Commute</title>
+<link rel="stylesheet" href="options.css">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body class="popup">
+  <h1>Idealista Commute</h1>
+  <p class="state" id="state" role="status"></p>
+  <form id="form" hidden>
+    <label class="field"><span>Passphrase</span><input id="passphrase" type="password" autocomplete="off"></label>
+    <button id="unlock" type="submit" class="primary">Unlock</button>
+  </form>
+  <button id="lock" type="button" class="btn" hidden>Lock now</button>
+  <p class="err" id="err" role="alert"></p>
+  <a href="#" id="options">Open options</a>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
